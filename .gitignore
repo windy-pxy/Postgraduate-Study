@@ -28,9 +28,6 @@ htmlcov/
 .DS_Store
 Thumbs.db
 desktop.ini
-vault/.obsidian/workspace*.json
-vault/.obsidian/cache/
-vault/.obsidian/plugins/
 
 # API caches
 .cache/
@@ -47,3 +44,8 @@ api_cache/
 *.[pP][pP][tT][xX]
 *.[dD][oO][cC]
 *.[dD][oO][cC][xX]
+
+# All Obsidian configuration stays local, at every directory depth.
+# Keep these after original-directory exceptions so no .gitkeep is re-included.
+**/.obsidian/
+**/.obsidian/**
