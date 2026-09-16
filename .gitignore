@@ -53,3 +53,4 @@ api_cache/
 # Phase 2A: synthetic test sandboxes and operation lock stay local.
 /tests/.runtime/
 /config/.source-manager.lock
+/review-queue/pdf-parse-blocks/*.json

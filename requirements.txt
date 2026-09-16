@@ -1,0 +1,2 @@
+# Phase 2B local PDF parsing and synthetic PDF tests.
+PyMuPDF==1.26.7

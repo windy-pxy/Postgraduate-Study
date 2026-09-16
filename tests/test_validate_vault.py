@@ -125,6 +125,11 @@ class MetadataTests(unittest.TestCase):
         for path in ('00-System/new.md', '99-Templates/new.md', 'notes/new.md'):
             self.assertIn('FRONTMATTER_REQUIRED', codes({path: '# Empty'}))
 
+    def test_registered_parsed_markdown_uses_dedicated_validator(self):
+        path = '90-Parsed-Sources/src-abcdef123456/pages/page-0001.md'
+        self.assertEqual(codes({path: '# Generated derived fixture'}), set())
+        self.assertFalse(vault.parsed_output_document('90-Parsed-Sources/not-a-source/page.md'))
+
     def test_error_type_fixed_options(self):
         for value in vault.ERROR_TYPES:
             self.assertEqual(codes({'note.md': note(metadata(type='mistake', error_type=value))}), set())
@@ -191,8 +196,9 @@ class IgnoreRuleTests(unittest.TestCase):
     def test_sensitive_and_runtime_files_ignored(self):
         self.assert_ignored([
             '.env', 'config/.env.production', 'logs/run.log',
-            'scripts/__pycache__/tool.cpython-312.pyc', '.pytest_cache/state',
+            'scripts/__pycache__/tool.cpython-312.pyc', '.pytest_cache/state', '.venv/Lib/site-packages/example.py',
             'api-cache/result.json', '.cache/result.json',
+            'review-queue/pdf-parse-blocks/src-abcdef123456.json',
             'sources-original/math1/book.PDF', 'sources-original/408/slides.ppt',
             'sources-original/408/slides.pptx', 'sources-original/math1/book.doc',
             'sources-original/math1/book.docx', 'vault/80-Attachments/book.pdf',
@@ -203,6 +209,7 @@ class IgnoreRuleTests(unittest.TestCase):
             '.env.example', 'AGENTS.md', 'README.md',
             'vault/03-Knowledge-Notes/note.md', 'prompts/example.md',
             'scripts/validate_vault.py', 'tests/test_validate_vault.py',
+            'scripts/pdf_parser.py', 'tests/test_pdf_parser.py', 'requirements.txt',
             'config/providers.example.yaml', 'config/sources-original.baseline.json',
         ], False)
 

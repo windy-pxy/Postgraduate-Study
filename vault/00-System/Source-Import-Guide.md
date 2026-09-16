@@ -1,6 +1,6 @@
 # 安全资料导入指南（Phase 2A）
 
-当前只建立导入基础设施，没有导入真实学习资料。以下命令供以后用户明确授权导入时使用。系统只识别格式、计算 SHA-256、复制原件和登记来源，不提取正文；Phase 2B 才会开始正文解析。
+Phase 2A 导入基础设施已验收并提交；当前 Phase 2B 已建立数字原生 PDF 的本地解析框架，但仍未导入真实学习资料。导入系统只识别格式、计算 SHA-256、复制原件和登记来源；解析由独立工具处理，说明见 [[00-System/PDF-Parsing-Guide|PDF 解析指南]]。
 
 ## 先理解三个位置
 
@@ -86,13 +86,17 @@ source_id 默认为 `src-` 加 SHA-256 前 12 位；完整哈希存入清单。�
 
 工具先将原件复制为目标目录内的独占临时文件，刷盘后重算 SHA-256，再与计划及 inbox 比较。成功后使用不覆盖目标的原子发布；清单也采用同目录临时文件和原子发布。失败只清理本次创建且身份相符的临时文件和空目录，绝不删除既有用户文件或已经正式落盘的原件。
 
-清单字段包括 schema_version、source_id、sha256、original_filename、stored_relative_path、file_type、size_bytes、course、subject、source_type、classification_status、import_status、imported_at，以及 parser_status/name/version、page_count、notes。时间带时区；parser_status 固定 not_started，页数与解析器信息为空。JSON 稳定排序、UTF-8，不保存绝对用户目录或资料正文。
+清单字段包括 schema_version、source_id、sha256、original_filename、stored_relative_path、file_type、size_bytes、course、subject、source_type、classification_status、import_status、imported_at，以及 parser_status/name/version、page_count、parsed_at、parsed_output_relative_path、parse_review_status、notes。JSON 稳定排序、UTF-8，不保存绝对用户目录或资料正文。
+
+刚导入时 `parser_status` 为 `not_started`，六个解析字段为空。PDF 解析器只在原件哈希通过、临时产物验证通过且输出目录原子发布后，才原子更新这些字段为 `parsed`、解析器名称/版本、页数、带时区的解析时间、项目内派生目录和 `review_required`。该更新不改写原有来源身份、哈希、分类或导入信息。
 
 ## 原件异常怎么办
 
 发现 HASH_MISMATCH、UNREGISTERED_ORIGINAL、缺失原件、缺失清单或 BASELINE_CONFLICT 时，先停止导入，保留现场并人工检查文件、清单和可信备份。不要编辑原件、自动移动文件、删除可疑文件或重建基线。恢复操作需要另行明确授权；本阶段不提供自动修复命令。
 
 原件和来源清单是两个文件，不能整体原子提交。如果原件已经发布、清单写入失败，工具保留原件，verify 报未登记原件，并阻止后续写入。此时需要人工依据保留的计划和校验结果处理，不能重新 apply 覆盖它。进程意外中断也可能留下锁或临时文件，工具不会擅自清理；请先确认没有其他导入任务，再另行授权处理。
+
+PDF 派生目录与 manifest 更新也不能组成一个整体原子事务。已有派生目录但 manifest 仍是 `not_started`，或 manifest 是 `parsed` 但目录缺失、页数/报告不一致，`verify` 都会报错。保留现场人工检查，不要删除目录、手改状态或重新解析来掩盖中断。
 
 ## 安全边界与局限
 
@@ -102,6 +106,6 @@ SHA-256 不是数字签名，也不能抵御有权限同时篡改原件、清单
 
 Windows ACL 尚未设置。本工具也不自动设置 Windows 只读属性；即使以后设置，只读属性也可被有权限的用户撤销，不是强安全边界。操作锁可阻止本工具并发写入，但不是对抗其他恶意进程的隔离机制；导入时不要并发修改相关目录。
 
-本阶段不持久化审计日志。命令输出仅含相对路径、分类、ID、校验摘要和固定错误码，不输出正文、API Key 或底层异常中的绝对目录。建议不要把敏感信息写进文件名。合成测试只在项目内 tests/.runtime 运行并清理自己的临时目录，不修改实际 sources-original。
+本阶段不持久化审计日志。命令输出仅含相对路径、分类、ID、校验摘要和固定错误码，不输出正文、API Key 或底层异常中的绝对目录。建议不要把敏感信息写进文件名。合成测试只在项目内 tests/.runtime 运行并清理自己的临时目录，不修改实际 sources-original。Phase 2B 解析器同样按 source_id 工作，不接受项目外路径；其产物与正式笔记分开。
 
 [[00-System/Home|返回首页]] · [[00-System/Validation-Guide|统一验证说明]]

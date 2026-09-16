@@ -6,6 +6,7 @@
 py -3.12 -B scripts/health_check.py
 py -3.12 -B scripts/validate_vault.py
 py -3.12 -B scripts/source_manager.py verify
+py -3.12 -B scripts/pdf_parser.py --help
 py -3.12 -B -m unittest discover -s tests -v
 ```
 
@@ -20,6 +21,7 @@ py -3.12 -B -m unittest discover -s tests -v
 - 检查正文和 YAML 内部双链的文件目标，包括别名、嵌入；忽略代码示例和 HTML 注释。目标重名时要求明确路径。
 - 跳过 vault 内的隐藏设备配置，不读取 .obsidian 配置、.env 或 API Key。读取 Markdown 是验证所必需，但错误报告不输出原文或字段值。
 - 扫描前拒绝符号链接、目录联接与其他重解析点，禁止通过链接越界。程序只读，不自动修复或创建文件。
+- `90-Parsed-Sources/src-*` 下的 Markdown 由 PDF 专用验证器检查，不按正式知识笔记模板误判；Vault 总验证会逐个调用 `verify-output`，检查派生目录结构、页码、资源、报告、来源完整性以及 manifest 的 parsed 状态。
 
 ## 原始资料基线
 
@@ -46,6 +48,10 @@ py -3.12 -B -m unittest discover -s tests -v
 | HASH_MISMATCH / UNREGISTERED_ORIGINAL | 原件哈希改变或存在未登记原件 |
 | BASELINE_CONFLICT / BASELINE_SOURCE_MISSING | 清单与已有身份锚点冲突或缺失 |
 | SOURCE_INTEGRITY_CHECK_FAILED | 来源清单、路径或基线结构无法安全校验 |
+| PARSE_STATE_CONFLICT / PARSED_OUTPUT_MISSING | 派生目录与 manifest 的 not_started/parsed 状态不一致 |
+| PARSE_MANIFEST_REPORT_CONFLICT | manifest 与解析报告的来源、解析器、时间或页数不一致 |
+| SENSITIVE_CONTENT_BLOCKED | 高置信疑似密钥阻止派生产物发布，错误输出不含原文 |
+| PARSED_OUTPUT_INVALID / UNREGISTERED_PARSED_OUTPUT | 派生 PDF 输出结构不完整或出现未登记目录/文件 |
 | UNSAFE_PATH_OR_UNREADABLE_INPUT | 路径不安全或输入不可读 |
 
 每次运行由人工按报错逐项检查；验证器不修改笔记，不删除、不移动资料。通过验证仅表示结构满足规则，不能保证页码、答案、语义关系真实。

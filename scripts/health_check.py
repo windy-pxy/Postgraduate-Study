@@ -16,11 +16,13 @@ DIRECTORIES = (
     'sources-original', 'sources-original/math1', 'sources-original/408',
     'import-inbox', 'review-queue', 'archive', 'scripts', 'config',
     'prompts', 'tests', 'logs', 'config/source-manifests', 'review-queue/import-plans',
+    'review-queue/pdf-parse-blocks',
 )
 FILES = ('AGENTS.md', 'README.md', '.gitignore', '.env.example',
          'config/providers.example.yaml', 'scripts/health_check.py',
          'tests/test_health_check.py', 'scripts/source_manager.py',
-         'config/sources-original.baseline.json')
+         'config/sources-original.baseline.json', 'scripts/pdf_parser.py',
+         'tests/test_pdf_parser.py', 'requirements.txt')
 
 
 def source_integrity(root):

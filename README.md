@@ -4,11 +4,13 @@
 
 ## 当前阶段
 
-Phase 0、Phase 1 已验收并提交。Phase 2A 建设安全导入基础设施、SHA-256 完整性校验和来源清单；本阶段只运行合成测试，没有导入真实学习资料。尚未实现正文解析、检索、问答、模型调用或自动学习分析，不安装插件，不执行 Git 提交。Phase 2B 才会开始正文解析。
+Phase 0、Phase 1、Phase 2A 已验收并提交。当前 Phase 2B 建设数字原生 PDF 的本地文本提取、逐页 Markdown、页面预览与质量检测框架；只运行合成测试，没有导入或解析真实学习资料。不执行本阶段 Git 提交，不开始 OCR、公式转 LaTeX、PPTX/DOCX 解析、检索、问答或模型调用。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
 Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接执行脚本即可。完整中文指南在 `vault/00-System/Source-Import-Guide.md`。
+
+Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定版本；本次没有创建 `.venv` 或安装软件。迁移环境如需安装，只允许在项目内 `.venv` 中按 requirements 安装，不得改全局 Python。PDF 解析说明见 `vault/00-System/PDF-Parsing-Guide.md`。
 
 ## 目录用途
 
@@ -39,6 +41,7 @@ Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接
 | `config` | 配置样例 |
 | `config/source-manifests` | 每个 source_id 一份 JSON 来源清单，不含正文 |
 | `review-queue/import-plans` | 待审核的单文件导入计划 |
+| `review-queue/pdf-parse-blocks` | 解析因高置信疑似密钥被阻止时的无原文安全报告 |
 | `prompts` | 后续提示词 |
 | `tests` | 基础安全测试 |
 | `logs` | 本地运行日志，不入 Git |
@@ -57,6 +60,7 @@ Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接
 py -3.12 -B scripts/health_check.py
 py -3.12 -B scripts/validate_vault.py
 py -3.12 -B scripts/source_manager.py verify
+py -3.12 -B scripts/pdf_parser.py --help
 py -3.12 -B -m unittest discover -s tests -v
 git status --short
 git diff --stat
@@ -91,10 +95,30 @@ source_id 为 `src-` 加 SHA-256 前 12 位，冲突时逐位延长。完整 SHA
 
 发现原件被修改、丢失、未登记文件、清单异常或哈希冲突时，停止后续写入，保留现场并人工检查可信备份与历史。禁止删除或重建基线消除报错。原件已发布而清单失败时，保留原件并报告异常；本阶段不实现自动修复。暂存锁或异常临时文件也不得擅自清理。
 
+## Phase 2B 本地 PDF 解析
+
+解析器只接受来源清单中已登记、完整性通过且 file_type 为 pdf 的 source_id，不接受路径参数。`inspect` 只读查看页数；`parse` 默认 dry-run，只有 `parse <source_id> --apply` 创建派生目录。目标目录存在即拒绝，不覆盖或合并。
+
+```powershell
+py -3.12 -B scripts/pdf_parser.py inspect <source_id>
+py -3.12 -B scripts/pdf_parser.py parse <source_id>
+py -3.12 -B scripts/pdf_parser.py parse <source_id> --apply
+py -3.12 -B scripts/pdf_parser.py verify-output <source_id>
+py -3.12 -B scripts/pdf_parser.py report <source_id>
+```
+
+输出固定在 `vault/90-Parsed-Sources/<source_id>/`，包括 `index.md`、`pages/page-0001.md`、必要的 `assets/page-0001.png`、`parse-report.json` 与 `review.md`。所有页面标记为 derived 和 review_required。普通提取文本放在 Markdown 文本围栏中忠实保留；疑似公式/图形只标记 needs_formula_review，绝不自动伪造公式。每页错误保留占位和固定错误码，不静默跳过。
+
+解析器只在原件 SHA-256、临时产物验证和原子发布都成功后，原子更新对应 manifest 的 parser 字段为 `parsed`、解析器、页数、时间、项目内输出路径和 `review_required`，不改原有来源身份、哈希、分类和导入信息。验证器会报告目录与 manifest 状态、页数或报告不一致。
+
+工具不对派生正文做自动脱敏或改写。高置信疑似真实密钥会阻止整份产物发布，manifest 保持 `not_started`，并且只在 `review-queue/pdf-parse-blocks/` 记录无原文的错误码、页码和风险类型。`YOUR_API_KEY` 等占位符和普通代码示例保持原样。
+
+`verify-output` 核对来源哈希、PDF 页数、输出页数、逐页元数据、报告指标、PNG 资源、文件全集和内部链接，拒绝绝对/越界链接、未登记页面、未转义 LaTeX 与常见敏感模式。它检查结构一致性，不证明文字内容准确。详细流程、质量报告和首次真实验证建议见 `vault/00-System/PDF-Parsing-Guide.md`。
+
 ## 后续路线（每阶段开始前确认）
 
 1. Phase 1（本阶段）：Obsidian 学习数据结构、笔记模板、双链规范与只读验证；不导入资料。
-2. Phase 2A（本阶段）：安全导入基础设施与 SHA-256 来源清单；Phase 2B（未开始）：正文解析、页码映射与人工审核。
+2. Phase 2A（已提交）：安全导入与 SHA-256 来源清单；Phase 2B（本阶段）：数字原生 PDF 基础文本与审核产物；后续子阶段：OCR、公式、复杂图表和其他 Office 格式。
 3. Phase 3：本地检索与来源追溯。
 4. Phase 4：多模型适配、带来源和页码的知识问答。
 5. Phase 5：错题、复习记录和阶段测评流程。
@@ -108,4 +132,4 @@ Phase 1 的路径/大小/时间基线已在原件区为空且旧验证通过时�
 
 遵守 `AGENTS.md`。任何删除必须明确确认，普通删除默认归档；原件永不删除。禁止未经确认的批量资料操作。创建文件不得覆盖同名文件；编辑前检查 Git 状态。API Key 仅由环境变量提供，不写入任何笔记、样例或日志。`.env.example` 只能保留空值。配置中的 `api_key_env` 仅引用变量名称。
 
-`.gitignore` 排除原件、敏感文件、日志、缓存、测试沙箱及全部 Obsidian 配置，但不能阻止强制添加，也不能移除已跟踪文件。来源清单、代码和正式笔记可以跟踪。写入仅限项目内，拒绝链接、目录联接、路径穿越和项目外路径；并发锁只保护本工具，不替代操作系统权限。工具不持久化运行日志，错误仅输出固定代码，不输出正文、密钥或底层异常的绝对路径。不得擅自提交；Phase 2A 完成后等待用户检查，不开始 Phase 2B。
+`.gitignore` 排除原件、敏感文件、日志、缓存、测试沙箱及全部 Obsidian 配置，但不能阻止强制添加，也不能移除已跟踪文件。来源清单、代码和正式笔记可以跟踪。写入仅限项目内，拒绝链接、目录联接、路径穿越和项目外路径；并发锁只保护本工具，不替代操作系统权限。工具不持久化运行日志，错误仅输出固定代码，不输出正文、密钥或底层异常的绝对路径。不得擅自提交或开始后续阶段。

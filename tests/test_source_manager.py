@@ -300,10 +300,34 @@ class SourceTests(unittest.TestCase):
         self.assertTrue(sm.iso_time(record['imported_at']))
         self.assertEqual(record['parser_status'], 'not_started')
         self.assertIsNone(record['page_count'])
+        self.assertIsNone(record['parsed_at'])
+        self.assertIsNone(record['parsed_output_relative_path'])
+        self.assertIsNone(record['parse_review_status'])
         self.assertFalse(Path(record['stored_relative_path']).is_absolute())
         record['stored_relative_path'] = 'C:/outside.pdf'
         with self.assertRaisesRegex(sm.SourceError, 'MANIFEST_PATH_INVALID'):
             self.manager.validate_manifest(record, record['source_id'] + '.json')
+
+    def test_manifest_parser_update_is_atomic_and_preserves_import_fields(self):
+        _, record = self.imported()
+        preserved = {key: record[key] for key in (
+            'source_id', 'sha256', 'original_filename', 'stored_relative_path', 'file_type',
+            'size_bytes', 'course', 'subject', 'source_type', 'classification_status',
+            'import_status', 'imported_at', 'notes')}
+        with patch.object(sm.os, 'replace', side_effect=OSError('synthetic replace failure')):
+            with self.assertRaises(OSError):
+                self.manager.mark_parsed(record, 'fixture-parser', '1.0', 2,
+                                         '2026-09-16T13:00:00+08:00',
+                                         f'vault/90-Parsed-Sources/{record["source_id"]}')
+        unchanged = self.manager.load_json(sm.MANIFESTS + '/' + record['source_id'] + '.json')
+        self.assertEqual(unchanged, record)
+        self.assertFalse(list((self.root / sm.MANIFESTS).glob('.*.tmp')))
+        updated = self.manager.mark_parsed(record, 'fixture-parser', '1.0', 2,
+                                           '2026-09-16T13:00:00+08:00',
+                                           f'vault/90-Parsed-Sources/{record["source_id"]}')
+        self.assertEqual({key: updated[key] for key in preserved}, preserved)
+        self.assertEqual(updated['parser_status'], 'parsed')
+        self.assertEqual(updated['parse_review_status'], 'review_required')
 
     def test_manifest_duplicate_json_key(self):
         path = self.root / sm.MANIFESTS / 'invalid.json'

@@ -34,6 +34,7 @@ SYSTEM_NOTES = {
     '00-System/Home.md', '00-System/Metadata-Schema.md', '00-System/Linking-Rules.md',
     '00-System/Validation-Guide.md', '00-System/Review-Queue.md',
     '00-System/Source-Import-Guide.md',
+    '00-System/PDF-Parsing-Guide.md',
     '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
     '03-Knowledge-Notes/Knowledge-MOC.md', '04-Mistakes/Mistakes-MOC.md',
     '05-Past-Papers/Past-Papers-MOC.md', '06-Stage-Tests/Stage-Tests-MOC.md',
@@ -81,6 +82,13 @@ def frontmatter(text):
 
 def placeholder(value):
     return isinstance(value, str) and PLACEHOLDER.fullmatch(value) is not None
+
+
+def parsed_output_document(path):
+    parts = PurePosixPath(path).parts
+    return (len(parts) >= 3 and parts[0] == '90-Parsed-Sources'
+            and re.fullmatch(r'src-[0-9a-f]{12,64}', parts[1]) is not None
+            and parts[-1].lower().endswith('.md'))
 
 
 def valid_date(value):
@@ -170,7 +178,7 @@ def validate_documents(documents, assets=None):
             issues.append((path, code, field))
 
         is_template = path in {'99-Templates/' + name for name in TEMPLATES}
-        infrastructure = path in SYSTEM_NOTES
+        infrastructure = path in SYSTEM_NOTES or parsed_output_document(path)
         try:
             meta, body = frontmatter(content)
             values = list(strings(meta)) if meta is not None else []
@@ -321,6 +329,26 @@ def validate_project(root):
             issues = [(item['path'], item['error'], '') for item in report['issues']]
         except module.SourceError:
             issues = [('sources-original', 'SOURCE_INTEGRITY_CHECK_FAILED', '')]
+        path_metadata(root / 'scripts/pdf_parser.py')
+        parser_spec = importlib.util.spec_from_file_location('pdf_parser_vault', root / 'scripts/pdf_parser.py')
+        parser_module = importlib.util.module_from_spec(parser_spec)
+        parser_spec.loader.exec_module(parser_module)
+        parser = parser_module.PDFParser(root)
+        parsed_ids = []
+        for name, entry in inventory.items():
+            parts = PurePosixPath(name).parts
+            if not parts or parts[0] != '90-Parsed-Sources':
+                continue
+            if len(parts) == 2:
+                if entry['kind'] == 'directory' and re.fullmatch(r'src-[0-9a-f]{12,64}', parts[1]):
+                    parsed_ids.append(parts[1])
+                elif parts[1] not in {'.gitkeep', 'Parsed-Sources-MOC.md'}:
+                    issues.append((name, 'UNREGISTERED_PARSED_OUTPUT', ''))
+        for source_id in sorted(parsed_ids):
+            try:
+                parser.verify_output(source_id)
+            except (parser_module.ParserError, parser_module.SourceError, OSError, ValueError, TypeError, KeyError):
+                issues.append((f'90-Parsed-Sources/{source_id}', 'PARSED_OUTPUT_INVALID', ''))
         assets = {name for name, entry in inventory.items() if entry['kind'] == 'file'}
         documents = {}
         for name in sorted(assets):

@@ -34,7 +34,8 @@ SID = re.compile(r'src-[0-9a-f]{12,64}')
 MANIFEST_FIELDS = {
     'schema_version', 'source_id', 'sha256', 'original_filename', 'stored_relative_path',
     'file_type', 'size_bytes', 'course', 'subject', 'source_type', 'classification_status',
-    'import_status', 'imported_at', 'parser_status', 'parser_name', 'parser_version', 'page_count', 'notes',
+    'import_status', 'imported_at', 'parser_status', 'parser_name', 'parser_version', 'page_count',
+    'parsed_at', 'parsed_output_relative_path', 'parse_review_status', 'notes',
 }
 
 
@@ -191,10 +192,10 @@ class SourceManager:
             fail('FILE_CHANGED_DURING_INSPECTION')
         return kind, digest, size
 
-    def load_json(self, relative):
+    def load_json(self, relative, max_bytes=1024 * 1024):
         with self.reader(relative) as stream:
-            data = stream.read(1024 * 1024 + 1)
-        if len(data) > 1024 * 1024:
+            data = stream.read(max_bytes + 1)
+        if len(data) > max_bytes:
             fail('JSON_TOO_LARGE')
         try:
             value = json.loads(data, object_pairs_hook=strict_object,
@@ -293,9 +294,24 @@ class SourceManager:
         if type(value['size_bytes']) is not int or value['size_bytes'] <= 0:
             fail('MANIFEST_SIZE_INVALID')
         if (value['classification_status'] != 'confirmed' or value['import_status'] != 'imported'
-                or value['parser_status'] != 'not_started' or any(value[k] is not None for k in ('parser_name', 'parser_version', 'page_count'))
+                or value['parser_status'] not in {'not_started', 'parsed'}
                 or not iso_time(value['imported_at']) or not isinstance(value['notes'], str)):
             fail('MANIFEST_STATUS_INVALID')
+        parser_fields = ('parser_name', 'parser_version', 'page_count', 'parsed_at',
+                         'parsed_output_relative_path', 'parse_review_status')
+        if value['parser_status'] == 'not_started':
+            if any(value[k] is not None for k in parser_fields):
+                fail('MANIFEST_STATUS_INVALID')
+        else:
+            output = f"vault/90-Parsed-Sources/{sid}"
+            if (not isinstance(value['parser_name'], str) or not value['parser_name']
+                    or not isinstance(value['parser_version'], str) or not value['parser_version']
+                    or type(value['page_count']) is not int or value['page_count'] < 1
+                    or not iso_time(value['parsed_at'])
+                    or value['parsed_output_relative_path'] != output
+                    or value['parse_review_status'] != 'review_required'):
+                fail('MANIFEST_STATUS_INVALID')
+            self.path(output, 'vault/90-Parsed-Sources')
 
     def manifests(self):
         records, issues = {}, []
@@ -337,6 +353,27 @@ class SourceManager:
                     fail('SIGNATURE_MISMATCH')
             except (SourceError, OSError) as exc:
                 issues.append({'path': path, 'error': str(exc) if isinstance(exc, SourceError) else 'ORIGINAL_MISSING_OR_UNREADABLE'})
+            output = f'vault/90-Parsed-Sources/{sid}'
+            output_path = self.path(output, 'vault/90-Parsed-Sources')
+            if record['parser_status'] == 'not_started':
+                if output_path.exists():
+                    issues.append({'path': output, 'error': 'PARSE_STATE_CONFLICT'})
+            else:
+                try:
+                    if record['parsed_output_relative_path'] != output or not output_path.is_dir():
+                        fail('PARSED_OUTPUT_MISSING')
+                    report = self.load_json(output + '/parse-report.json', 32 * 1024 * 1024)
+                    if (report.get('source_id') != sid or report.get('source_sha256') != digest
+                            or report.get('parser_name') != record['parser_name']
+                            or report.get('parser_version') != record['parser_version']
+                            or report.get('parsed_at') != record['parsed_at']
+                            or report.get('declared_page_count') != record['page_count']
+                            or report.get('output_page_count') != record['page_count']
+                            or report.get('review_status') != record['parse_review_status']
+                            or report.get('derived') is not True):
+                        fail('PARSE_MANIFEST_REPORT_CONFLICT')
+                except (SourceError, OSError) as exc:
+                    issues.append({'path': output, 'error': str(exc) if isinstance(exc, SourceError) else 'PARSED_OUTPUT_MISSING_OR_UNREADABLE'})
         originals = self.walk('sources-original')
         for path in originals:
             rel = path.removeprefix('sources-original/')
@@ -458,6 +495,46 @@ class SourceManager:
         finally:
             self._remove_owned(temporary, identity)
 
+    def mark_parsed(self, original, parser_name, parser_version, page_count, parsed_at, output_relative_path):
+        """Atomically change only reserved parser fields after output publication."""
+        sid = original.get('source_id') if isinstance(original, dict) else None
+        if not isinstance(sid, str) or not SID.fullmatch(sid):
+            fail('MANIFEST_ID_INVALID')
+        relative = MANIFESTS + '/' + sid + '.json'
+        destination = self.path(relative, MANIFESTS)
+        current = self.load_json(relative)
+        self.validate_manifest(current, destination.name)
+        if current != original or current['parser_status'] != 'not_started':
+            fail('MANIFEST_CHANGED_OR_ALREADY_PARSED')
+        updated = dict(current)
+        updated.update(parser_status='parsed', parser_name=parser_name, parser_version=parser_version,
+                       page_count=page_count, parsed_at=parsed_at,
+                       parsed_output_relative_path=output_relative_path,
+                       parse_review_status='review_required')
+        self.validate_manifest(updated, destination.name)
+        before = self._metadata(destination)
+        temporary = self.path(self.relative(destination.parent / ('.' + uuid.uuid4().hex + '.tmp')))
+        with temporary.open('xb') as stream:
+            identity = os.fstat(stream.fileno())
+            try:
+                stream.write(json_bytes(updated))
+                stream.flush()
+                os.fsync(stream.fileno())
+            except BaseException:
+                stream.close()
+                self._remove_owned(temporary, identity)
+                raise
+        try:
+            after = self._metadata(destination)
+            if ((before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
+                    != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
+                    or self.load_json(relative) != current):
+                fail('MANIFEST_CHANGED_DURING_UPDATE')
+            os.replace(temporary, destination)
+        finally:
+            self._remove_owned(temporary, identity)
+        return updated
+
     def plan(self, relative, course=None, subject=None, source_type=None, save=False):
         self.require_clean()
         path = self.path(relative, 'import-inbox')
@@ -563,6 +640,7 @@ class SourceManager:
                                 file_type=plan['file_type'], size_bytes=size, **c,
                                 classification_status='confirmed', import_status='imported', imported_at=utc_now(),
                                 parser_status='not_started', parser_name=None, parser_version=None, page_count=None, notes='')
+                manifest.update(parsed_at=None, parsed_output_relative_path=None, parse_review_status=None)
                 self.validate_manifest(manifest, plan['source_id'] + '.json')
                 self.write_json(MANIFESTS + '/' + plan['source_id'] + '.json', manifest)
                 return {'dry_run': False, 'source_id': plan['source_id'], 'import_status': 'imported', 'baseline_status': 'pending_explicit_update'}
@@ -628,7 +706,9 @@ class SourceManager:
         return {'inbox_file_count': len(inbox), 'inbox_pending_count': inbox_pending,
                 'pending_plans': pending, 'invalid_plans': invalid,
                 'imported_count': len(records), 'integrity_issues': report['issues'],
-                'baseline_pending': report['baseline_pending'], 'awaiting_parse': len(records)}
+                'baseline_pending': report['baseline_pending'],
+                'awaiting_parse': sum(r['parser_status'] == 'not_started' for r in records.values()),
+                'parsed_count': sum(r['parser_status'] == 'parsed' for r in records.values())}
 
 
 def cli(argv=None):

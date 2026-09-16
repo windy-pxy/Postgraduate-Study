@@ -1,6 +1,6 @@
-# 数学一 + 408 学习首页
+	# 数学一 + 408 学习首页
 
-Phase 1 结构已验收；当前建设 Phase 2A 安全导入基础设施，不导入真实资料。模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
+Phase 1 与 Phase 2A 已验收；当前建设 Phase 2B 本地 PDF 解析框架，只运行合成测试，不导入真实资料。模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
 
 ## 学习区域
 
@@ -23,6 +23,7 @@ Phase 1 结构已验收；当前建设 Phase 2A 安全导入基础设施，不�
 - [[00-System/Validation-Guide|验证工具与安全边界]]
 - [[00-System/Review-Queue|待审核列表]]
 - [[00-System/Source-Import-Guide|安全导入与 SHA-256 校验指南]]
+- [[00-System/PDF-Parsing-Guide|本地 PDF 解析与质量审核指南]]
 
 ## 仓库外部区域
 

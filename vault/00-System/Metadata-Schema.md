@@ -56,6 +56,12 @@ mistake 额外要求 `error_type`：concept、calculation、method、reading、m
 
 真题年份与题号、测试得分与满分、耗时、学习时长、薄弱点出现次数等记录在模板对应小节，本阶段无默认数值。得分需标明满分，时长统一说明分钟；再次做对记录“是／否／未复测”及真实日期，不能把未复测写成否。
 
+## 来源 manifest 的解析状态
+
+`config/source-manifests/<source_id>.json` 不是笔记 YAML，但是来源追溯的权威元数据。新导入来源的 `parser_status` 为 `not_started`，`parser_name`、`parser_version`、`page_count`、`parsed_at`、`parsed_output_relative_path`、`parse_review_status` 均为 null。
+
+只有在原件 SHA-256 通过、解析产物验证通过并原子发布后，解析器才原子更新这六个字段：`parser_status: parsed`、实际解析器名称和版本、正整数页数、带时区 ISO 8601 的 `parsed_at`、精确的项目内相对路径 `vault/90-Parsed-Sources/<source_id>`，以及 `parse_review_status: review_required`。原有 source_id、SHA-256、文件名、存储路径、分类和导入时间不得改写。任何一边缺失或页数、报告不一致都必须由验证器报错。
+
 ## 豁免范围
 
 仅验证器中明确列出的系统说明和导航页免填学习元数据；新建普通 Markdown（即使在 00-System 或 99-Templates 内）仍按正式笔记检查。七个固定模板允许占位符，但仍检查 YAML、固定 type 和非占位符字段。代码块、行内代码中的双链写法示例不参与目标检查。
