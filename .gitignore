@@ -1,0 +1,49 @@
+# Secrets: never track real environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.yaml
+
+# Runtime logs and Python caches
+*.log
+logs/*
+!logs/.gitkeep
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+.coverage
+htmlcov/
+
+# Temporary and device-specific files
+*.tmp
+*.temp
+*.swp
+*~
+~$*
+.DS_Store
+Thumbs.db
+desktop.ini
+vault/.obsidian/workspace*.json
+vault/.obsidian/cache/
+vault/.obsidian/plugins/
+
+# API caches
+.cache/
+api-cache/
+api_cache/
+
+# All original materials remain local, including PDF/PPT/Word
+/sources-original/**
+!/sources-original/**/
+!/sources-original/**/.gitkeep
+# Large source documents elsewhere also stay local
+*.[pP][dD][fF]
+*.[pP][pP][tT]
+*.[pP][pP][tT][xX]
+*.[dD][oO][cC]
+*.[dD][oO][cC][xX]

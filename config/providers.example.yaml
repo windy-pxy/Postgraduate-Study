@@ -1,0 +1,26 @@
+# 仅为后续配置协议草案，本阶段不加载、不调用 API。
+# api_key_env 是环境变量名称，不是密钥值；不得在本文件中填写密钥。
+schema_version: 1
+default_provider: local-model
+providers:
+  deepseek:
+    adapter: openai-compatible
+    base_url: null # 后续按官方文档填写
+    model: null # 后续选择模型标识
+    api_key_env: DEEPSEEK_API_KEY
+  openai-compatible:
+    adapter: openai-compatible
+    base_url: null
+    model: null
+    api_key_env: OPENAI_API_KEY
+  anthropic:
+    adapter: anthropic
+    base_url: null
+    model: null
+    api_key_env: ANTHROPIC_API_KEY
+  local-model:
+    adapter: openai-compatible
+    base_url: http://127.0.0.1:8000/v1
+    model: null
+    api_key_env: LOCAL_MODEL_API_KEY
+    auth_required: false
