@@ -1,0 +1,86 @@
+schema_version: 1
+
+parser_catalog:
+  basic_pymupdf:
+    implementation_status: active
+    parser_mode: local_basic_text
+    network_allowed: false
+  enhanced_mineru_pipeline:
+    implementation_status: interface_only
+    parser_mode: local_formula_layout_enhanced
+    network_allowed: false
+  enhanced_docling_formula:
+    implementation_status: interface_only
+    parser_mode: local_formula_enrichment
+    network_allowed: false
+  optional_mathpix_formula_crop:
+    implementation_status: disabled_optional_future
+    parser_mode: cloud_formula_crop
+    network_allowed: false
+
+profiles:
+  math1_formula_dense:
+    course: math1
+    subjects: [calculus, linear-algebra, probability]
+    preferred_enhanced_parser: enhanced_mineru_pipeline
+    fallback_enhanced_parser: enhanced_docling_formula
+    thresholds:
+      replacement_char_count: 1
+      replacement_char_rate: 0.0005
+      subscript_or_superscript_risk: true
+      formula_density: 0.025
+      matrix_or_fraction_risk: true
+      code_density: 0.45
+      low_text_density: 40
+      image_only_page: true
+      table_risk: true
+      multi_column_risk: true
+      reading_order_risk: true
+      font_encoding_warning: true
+
+  cs408_general:
+    course: "408"
+    subjects: [data-structure, computer-organization, operating-system, computer-network]
+    preferred_enhanced_parser: enhanced_mineru_pipeline
+    fallback_enhanced_parser: enhanced_docling_formula
+    thresholds:
+      replacement_char_count: 2
+      replacement_char_rate: 0.001
+      subscript_or_superscript_risk: true
+      formula_density: 0.08
+      matrix_or_fraction_risk: true
+      code_density: 0.35
+      low_text_density: 30
+      image_only_page: true
+      table_risk: true
+      multi_column_risk: true
+      reading_order_risk: true
+      font_encoding_warning: true
+
+  cs408_symbol_dense:
+    course: "408"
+    subjects: [computer-organization, data-structure]
+    preferred_enhanced_parser: enhanced_mineru_pipeline
+    fallback_enhanced_parser: enhanced_docling_formula
+    thresholds:
+      replacement_char_count: 1
+      replacement_char_rate: 0.0005
+      subscript_or_superscript_risk: true
+      formula_density: 0.06
+      matrix_or_fraction_risk: true
+      code_density: 0.40
+      low_text_density: 30
+      image_only_page: true
+      table_risk: true
+      multi_column_risk: true
+      reading_order_risk: true
+      font_encoding_warning: true
+
+routing:
+  normal: basic_accepted_candidate
+  mild_anomaly: review_required
+  formula_symbol_or_encoding_anomaly: enhanced_parse_queued
+  high_risk_or_unsupported: manual_or_optional_cloud_review
+  automatic_knowledge_note_entry: false
+  enhanced_may_overwrite_basic: false
+  latex_syntax_implies_semantic_correctness: false

@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "contains_real_document_text": false,
+  "cases": [
+    {
+      "case_id": "synthetic-clean-text",
+      "profile": "cs408_general",
+      "expected_route": "basic_accepted_candidate",
+      "metrics": {
+        "character_count": 800,
+        "replacement_char_count": 0,
+        "replacement_char_rate": 0.0,
+        "subscript_or_superscript_risk": false,
+        "formula_density": 0.0,
+        "matrix_or_fraction_risk": false,
+        "code_density": 0.05,
+        "low_text_density": 800,
+        "image_only_page": false,
+        "table_risk": false,
+        "multi_column_risk": false,
+        "reading_order_risk": false,
+        "font_encoding_warning": false,
+        "formula_candidate": false,
+        "image_count": 0,
+        "basic_failed": false,
+        "unsupported": false
+      }
+    },
+    {
+      "case_id": "synthetic-formula-review",
+      "profile": "cs408_general",
+      "expected_route": "review_required",
+      "metrics": {
+        "character_count": 500,
+        "replacement_char_count": 0,
+        "replacement_char_rate": 0.0,
+        "subscript_or_superscript_risk": false,
+        "formula_density": 0.01,
+        "matrix_or_fraction_risk": false,
+        "code_density": 0.05,
+        "low_text_density": 500,
+        "image_only_page": false,
+        "table_risk": false,
+        "multi_column_risk": false,
+        "reading_order_risk": false,
+        "font_encoding_warning": false,
+        "formula_candidate": true,
+        "image_count": 0,
+        "basic_failed": false,
+        "unsupported": false
+      }
+    },
+    {
+      "case_id": "synthetic-replacement-enhanced",
+      "profile": "cs408_symbol_dense",
+      "expected_route": "enhanced_parse_queued",
+      "metrics": {
+        "character_count": 1000,
+        "replacement_char_count": 3,
+        "replacement_char_rate": 0.003,
+        "subscript_or_superscript_risk": true,
+        "formula_density": 0.01,
+        "matrix_or_fraction_risk": false,
+        "code_density": 0.1,
+        "low_text_density": 1000,
+        "image_only_page": false,
+        "table_risk": false,
+        "multi_column_risk": false,
+        "reading_order_risk": false,
+        "font_encoding_warning": true,
+        "formula_candidate": true,
+        "image_count": 0,
+        "basic_failed": false,
+        "unsupported": false
+      }
+    },
+    {
+      "case_id": "synthetic-unsupported-manual",
+      "profile": "math1_formula_dense",
+      "expected_route": "manual_or_optional_cloud_review",
+      "metrics": {
+        "character_count": 0,
+        "replacement_char_count": 0,
+        "replacement_char_rate": 0.0,
+        "subscript_or_superscript_risk": false,
+        "formula_density": 0.0,
+        "matrix_or_fraction_risk": false,
+        "code_density": 0.0,
+        "low_text_density": 0,
+        "image_only_page": true,
+        "table_risk": false,
+        "multi_column_risk": false,
+        "reading_order_risk": false,
+        "font_encoding_warning": false,
+        "formula_candidate": false,
+        "image_count": 1,
+        "basic_failed": true,
+        "unsupported": true
+      }
+    }
+  ],
+  "representative_cs408_metadata_only": {
+    "source_id": "src-000000000000",
+    "page_count": 4,
+    "page_2_replacement_char_count": 15,
+    "page_2_expected_route": "enhanced_parse_queued",
+    "contains_pdf_text": false
+  }
+}

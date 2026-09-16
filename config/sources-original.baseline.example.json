@@ -1,0 +1,10 @@
+{
+  "schema_version": 2,
+  "algorithm": "sha256",
+  "sources": {},
+  "usage_instructions": [
+    "此文件仅为可提交的空结构示例，不是原件完整性基线。",
+    "真实基线使用 config/sources-original.baseline.json，并始终保留在本地且不进入 Git。",
+    "只通过 source_manager.py baseline-update --apply 在完整性检查通过后更新真实基线。"
+  ]
+}

@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Phase 0、Phase 1、Phase 2A 已验收并提交。当前 Phase 2B 建设数字原生 PDF 的本地文本提取、逐页 Markdown、页面预览与质量检测框架；只运行合成测试，没有导入或解析真实学习资料。不执行本阶段 Git 提交，不开始 OCR、公式转 LaTeX、PPTX/DOCX 解析、检索、问答或模型调用。
+Phase 0、Phase 1、Phase 2A 和 Phase 2B 框架已提交。当前 Phase 2C-Architecture 只建立页面级解析器接口、质量路由、状态机、资源门禁和合成评估集。不安装 MinerU、Docling、OCR、CUDA 版 PyTorch 或 Docker，不下载模型，不调用网络/API，不重解析或覆盖已有资料。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
@@ -39,14 +39,18 @@ Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定
 | `archive` | 经确认后移入的非原始旧文件 |
 | `scripts` | 项目脚本 |
 | `config` | 配置样例 |
-| `config/source-manifests` | 每个 source_id 一份 JSON 来源清单，不含正文 |
+| `config/source-manifests` | 每个 source_id 一份本地 JSON 来源清单，不含正文且不进入 Git |
 | `review-queue/import-plans` | 待审核的单文件导入计划 |
 | `review-queue/pdf-parse-blocks` | 解析因高置信疑似密钥被阻止时的无原文安全报告 |
+| `review-queue/parsing-routing` | 无正文的页面质量路由计划 |
+| `review-queue/parsing-jobs` / `parsing-checkpoints` | 未来单页队列和断点，运行内容不入 Git |
 | `prompts` | 后续提示词 |
 | `tests` | 基础安全测试 |
 | `logs` | 本地运行日志，不入 Git |
 
 原始资料保留原貌，任何程序和 AI 不得修改、覆盖、移动或删除。解析资料是后续从原件生成的可追溯派生文件；修改解析文本不会修改原件。个人 Markdown 笔记可在授权范围内编辑。空目录以 `.gitkeep` 保留。
+
+Git 只保存可复用的系统代码、测试、配置样例、系统文档、模板和用户主动创建的正式知识笔记。真实原件、inbox 文件、来源清单、真实 SHA-256 基线、导入/路由计划、解析产物、运行队列、日志和模型缓存只保留在本机。`config/sources-original.baseline.example.json` 是空结构说明；实际完整性校验始终读取本地且被忽略的 `config/sources-original.baseline.json`。忽略规则不是备份，动态资料仍需独立备份。
 
 ## 使用与验证
 
@@ -91,7 +95,7 @@ plan 默认预览，`--save` 只保存计划；apply 默认预演，`--apply` �
 
 source_id 为 `src-` 加 SHA-256 前 12 位，冲突时逐位延长。完整 SHA-256 写入清单；同一内容改名仍是同一来源，不重复导入。同名不同内容存入不同 source_id 目录。原件和 JSON 清单均先写同目录临时文件，再校验并原子发布，禁止覆盖。Windows 只读属性未设置，即使设置也不是强安全边界；Windows ACL 尚未启用。
 
-基线版本 2 记录已确认来源的 SHA-256、路径及辅助大小；当前无真实来源，sources 为空。apply 不更新基线；新来源显示 baseline_pending，只有单独 `baseline-update --apply` 才补充锚点。更新前必须通过全部原件、清单和已有锚点检查，不允许改写旧哈希来掩盖异常。
+基线版本 2 记录已确认来源的 SHA-256、路径及辅助大小。apply 不更新基线；新来源显示 baseline_pending，只有单独 `baseline-update --apply` 才补充锚点。更新前必须通过全部原件、清单和已有锚点检查，不允许改写旧哈希来掩盖异常。
 
 发现原件被修改、丢失、未登记文件、清单异常或哈希冲突时，停止后续写入，保留现场并人工检查可信备份与历史。禁止删除或重建基线消除报错。原件已发布而清单失败时，保留原件并报告异常；本阶段不实现自动修复。暂存锁或异常临时文件也不得擅自清理。
 
@@ -115,6 +119,16 @@ py -3.12 -B scripts/pdf_parser.py report <source_id>
 
 `verify-output` 核对来源哈希、PDF 页数、输出页数、逐页元数据、报告指标、PNG 资源、文件全集和内部链接，拒绝绝对/越界链接、未登记页面、未转义 LaTeX 与常见敏感模式。它检查结构一致性，不证明文字内容准确。详细流程、质量报告和首次真实验证建议见 `vault/00-System/PDF-Parsing-Guide.md`。
 
+Phase 2C 命令只读校验配置或从已验证的基础产物生成无正文路由计划：
+
+```powershell
+py -3.12 -B scripts/parsing_architecture.py validate-config
+py -3.12 -B scripts/parsing_architecture.py plan-source <source_id> --profile cs408_symbol_dense
+py -3.12 -B scripts/parsing_architecture.py verify-plan <source_id>
+```
+
+三种档案、分层目录、状态机和未来 MinerU 接入边界见 `vault/00-System/Scalable-Parsing-Architecture.md`。
+
 ## 后续路线（每阶段开始前确认）
 
 1. Phase 1（本阶段）：Obsidian 学习数据结构、笔记模板、双链规范与只读验证；不导入资料。
@@ -132,4 +146,4 @@ Phase 1 的路径/大小/时间基线已在原件区为空且旧验证通过时�
 
 遵守 `AGENTS.md`。任何删除必须明确确认，普通删除默认归档；原件永不删除。禁止未经确认的批量资料操作。创建文件不得覆盖同名文件；编辑前检查 Git 状态。API Key 仅由环境变量提供，不写入任何笔记、样例或日志。`.env.example` 只能保留空值。配置中的 `api_key_env` 仅引用变量名称。
 
-`.gitignore` 排除原件、敏感文件、日志、缓存、测试沙箱及全部 Obsidian 配置，但不能阻止强制添加，也不能移除已跟踪文件。来源清单、代码和正式笔记可以跟踪。写入仅限项目内，拒绝链接、目录联接、路径穿越和项目外路径；并发锁只保护本工具，不替代操作系统权限。工具不持久化运行日志，错误仅输出固定代码，不输出正文、密钥或底层异常的绝对路径。不得擅自提交或开始后续阶段。
+`.gitignore` 排除原件、真实来源清单与基线、导入/路由计划、解析产物、运行队列、敏感文件、日志、模型缓存、测试沙箱及全部 Obsidian 配置，但不能阻止强制添加，也不能替代提交前审计。代码、配置样例、系统文档、模板和正式知识笔记可以跟踪。写入仅限项目内，拒绝链接、目录联接、路径穿越和项目外路径；并发锁只保护本工具，不替代操作系统权限。工具不持久化运行日志，错误仅输出固定代码，不输出正文、密钥或底层异常的绝对路径。不得擅自提交或开始后续阶段。

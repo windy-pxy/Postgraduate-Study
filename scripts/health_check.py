@@ -17,12 +17,20 @@ DIRECTORIES = (
     'import-inbox', 'review-queue', 'archive', 'scripts', 'config',
     'prompts', 'tests', 'logs', 'config/source-manifests', 'review-queue/import-plans',
     'review-queue/pdf-parse-blocks',
+    'review-queue/parsing-routing', 'review-queue/parsing-jobs',
+    'review-queue/parsing-checkpoints', 'tests/fixtures/parsing-evaluation',
 )
 FILES = ('AGENTS.md', 'README.md', '.gitignore', '.env.example',
          'config/providers.example.yaml', 'scripts/health_check.py',
          'tests/test_health_check.py', 'scripts/source_manager.py',
-         'config/sources-original.baseline.json', 'scripts/pdf_parser.py',
+         'config/sources-original.baseline.json',
+         'config/sources-original.baseline.example.json', 'scripts/pdf_parser.py',
          'tests/test_pdf_parser.py', 'requirements.txt')
+FILES += ('scripts/parsing_architecture.py', 'tests/test_parsing_architecture.py',
+          'config/parsing-profiles.yaml', 'config/resource-limits.yaml',
+          'vault/00-System/Scalable-Parsing-Architecture.md',
+          'tests/fixtures/parsing-evaluation/evaluation-manifest.json',
+          'tests/fixtures/parsing-evaluation/comparison-report-template.md')
 
 
 def source_integrity(root):
@@ -53,7 +61,24 @@ def safe_kind(root, relative, directory=False):
 
 def forbidden_tracked(name):
     path = PurePosixPath(name.lower())
+    parts = path.parts
     if path.parts and path.parts[0] == 'sources-original':
+        return path.name != '.gitkeep'
+    if path.as_posix() == 'config/sources-original.baseline.json':
+        return True
+    if parts[:2] == ('config', 'source-manifests'):
+        return path.name != '.gitkeep'
+    if parts and parts[0] == 'import-inbox':
+        return path.name != '.gitkeep'
+    if len(parts) >= 2 and parts[0] == 'review-queue' and parts[1] in {
+            'import-plans', 'pdf-parse-blocks', 'parsing-routing',
+            'parsing-jobs', 'parsing-checkpoints'}:
+        return path.name != '.gitkeep'
+    if parts[:2] == ('vault', '90-parsed-sources'):
+        return path.as_posix() not in {
+            'vault/90-parsed-sources/.gitkeep',
+            'vault/90-parsed-sources/parsed-sources-moc.md'}
+    if parts and parts[0] in {'logs', 'archive', 'models'}:
         return path.name != '.gitkeep'
     return (path.name == '.env'
             or (path.name.startswith('.env.') and path.name != '.env.example')
@@ -90,7 +115,7 @@ def check(root):
             return results
         results.append(('Local Git repository', True))
         tracked = git_read(root, 'ls-files', '-z').decode('utf-8', 'replace').split('\0')
-        results.append(('No tracked environment secrets or original materials',
+        results.append(('No tracked secrets, source data, or runtime artifacts',
                         not any(forbidden_tracked(p) for p in tracked if p)))
         status = git_read(root, 'status', '--porcelain=v1', '-z')
         # Never print filenames or Git stderr: they may contain sensitive text.

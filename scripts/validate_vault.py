@@ -35,6 +35,7 @@ SYSTEM_NOTES = {
     '00-System/Validation-Guide.md', '00-System/Review-Queue.md',
     '00-System/Source-Import-Guide.md',
     '00-System/PDF-Parsing-Guide.md',
+    '00-System/Scalable-Parsing-Architecture.md',
     '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
     '03-Knowledge-Notes/Knowledge-MOC.md', '04-Mistakes/Mistakes-MOC.md',
     '05-Past-Papers/Past-Papers-MOC.md', '06-Stage-Tests/Stage-Tests-MOC.md',

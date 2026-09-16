@@ -7,6 +7,8 @@ py -3.12 -B scripts/health_check.py
 py -3.12 -B scripts/validate_vault.py
 py -3.12 -B scripts/source_manager.py verify
 py -3.12 -B scripts/pdf_parser.py --help
+py -3.12 -B scripts/parsing_architecture.py validate-config
+py -3.12 -B scripts/parsing_architecture.py verify-plan <source_id>
 py -3.12 -B -m unittest discover -s tests -v
 ```
 
@@ -22,10 +24,13 @@ py -3.12 -B -m unittest discover -s tests -v
 - 跳过 vault 内的隐藏设备配置，不读取 .obsidian 配置、.env 或 API Key。读取 Markdown 是验证所必需，但错误报告不输出原文或字段值。
 - 扫描前拒绝符号链接、目录联接与其他重解析点，禁止通过链接越界。程序只读，不自动修复或创建文件。
 - `90-Parsed-Sources/src-*` 下的 Markdown 由 PDF 专用验证器检查，不按正式知识笔记模板误判；Vault 总验证会逐个调用 `verify-output`，检查派生目录结构、页码、资源、报告、来源完整性以及 manifest 的 parsed 状态。
+- Phase 2C 校验三种解析档案、禁用云端适配器、项目内模型缓存、单并发、单页重试和断点规则。路由计划不包含正文，不改写已有解析页。
 
 ## 原始资料基线
 
-`config/sources-original.baseline.json` 已从 Phase 1 元数据快照升级为版本 2 的 SHA-256 身份锚点。目前实际原始区只有两个空 .gitkeep，没有真实来源。来源清单位于 `config/source-manifests/`，每份原件保存完整 SHA-256。健康检查与 Vault 验证均调用同一只读校验逻辑，流式读取原件二进制计算哈希，不解析或输出正文。
+`config/sources-original.baseline.json` 已从 Phase 1 元数据快照升级为版本 2 的 SHA-256 身份锚点。来源清单位于 `config/source-manifests/`，每份原件保存完整 SHA-256。健康检查与 Vault 验证均调用同一只读校验逻辑，流式读取原件二进制计算哈希，不解析或输出正文。
+
+真实基线和来源清单只保留本地并被 Git 忽略；可提交的 `config/sources-original.baseline.example.json` 仅为空结构说明。健康检查仍要求真实基线在本地存在，并会拒绝 Git 跟踪真实基线、真实 manifest、计划、解析产物或运行状态。代码和样例不能恢复丢失的动态资料，因此这些本地数据需要单独备份。
 
 校验检测被修改/缺失原件、未登记原件、缺失/无效清单、同一哈希的冲突记录及清单与既有基线冲突。名称、大小、时间不能替代 SHA-256；单纯时间变化不会改变来源身份。verify 不更新记录，apply 仅新增原件和清单，新来源列为 baseline_pending；人工确认后才可单独 `baseline-update --apply` 补充锚点，存在完整性异常时拒绝。
 

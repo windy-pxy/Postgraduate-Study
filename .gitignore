@@ -53,4 +53,30 @@ api_cache/
 # Phase 2A: synthetic test sandboxes and operation lock stay local.
 /tests/.runtime/
 /config/.source-manager.lock
-/review-queue/pdf-parse-blocks/*.json
+
+# Local source identity and runtime records. Keep examples and directory anchors.
+/config/sources-original.baseline.json
+!/config/sources-original.baseline.example.json
+/config/source-manifests/*
+!/config/source-manifests/.gitkeep
+/import-inbox/*
+!/import-inbox/.gitkeep
+/review-queue/import-plans/*
+!/review-queue/import-plans/.gitkeep
+/review-queue/pdf-parse-blocks/*
+!/review-queue/pdf-parse-blocks/.gitkeep
+/review-queue/parsing-routing/*
+!/review-queue/parsing-routing/.gitkeep
+/review-queue/parsing-jobs/*
+!/review-queue/parsing-jobs/.gitkeep
+/review-queue/parsing-checkpoints/*
+!/review-queue/parsing-checkpoints/.gitkeep
+
+# Real derived outputs remain local; keep only the system index and root anchor.
+/vault/90-Parsed-Sources/*
+!/vault/90-Parsed-Sources/.gitkeep
+!/vault/90-Parsed-Sources/Parsed-Sources-MOC.md
+
+# Local models and caches never enter Git.
+/models/*
+!/models/.gitkeep

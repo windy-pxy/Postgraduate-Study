@@ -1,0 +1,26 @@
+schema_version: 1
+hardware_profile: windows_16gb_rtx4060_laptop_8gb
+project_root_constraint: D:/Postgraduate-Study
+model_cache_relative_path: models/cache
+queue_relative_path: review-queue/parsing-jobs
+checkpoint_relative_path: review-queue/parsing-checkpoints
+
+limits:
+  max_concurrent_jobs: 1
+  max_pages_per_run: 25
+  max_single_file_size_bytes: 1073741824
+  max_render_pixels_per_page: 16000000
+  max_processing_seconds_per_page: 180
+  max_memory_bytes: 10737418240
+  max_vram_bytes: 6979321856
+  max_retry_count_per_page: 2
+
+execution:
+  checkpoint_after_each_page: true
+  resume_from_last_verified_page: true
+  retry_scope: single_page_only
+  heavy_parsers_for_anomaly_pages_only: true
+  prohibit_concurrent_bulk_reruns: true
+  preserve_previous_results: true
+  require_explicit_acceptance_for_retrieval: true
+  require_explicit_authorization_for_cloud: true

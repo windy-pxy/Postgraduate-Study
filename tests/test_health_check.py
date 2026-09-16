@@ -32,13 +32,31 @@ class HealthTests(unittest.TestCase):
     def test_tracked_secrets_and_originals_rejected(self):
         for name in ('.env', 'config/.env.production', 'private.key',
                      'credentials.json', 'sources-original/math1/book.PDF',
-                     'sources-original/408/notes.md'):
+                     'sources-original/408/notes.md',
+                     'config/sources-original.baseline.json',
+                     'config/source-manifests/src-aaaaaaaaaaaa.json',
+                     'import-inbox/book.pdf',
+                     'review-queue/import-plans/plan.json',
+                     'review-queue/parsing-routing/src-aaaaaaaaaaaa.json',
+                     'review-queue/parsing-jobs/job.json',
+                     'review-queue/parsing-checkpoints/page.json',
+                     'vault/90-Parsed-Sources/src-aaaaaaaaaaaa/index.md',
+                     'logs/run.log', 'archive/old.md', 'models/cache/model.bin'):
             with self.subTest(name=name):
                 self.assertFalse(all(ok for _, ok in self.simulated(name.encode() + b'\0')))
 
     def test_examples_notes_placeholders_allowed(self):
         for name in ('.env.example', 'config/providers.example.yaml',
+                     'config/sources-original.baseline.example.json',
                      'vault/03-Knowledge-Notes/笔记.md', 'sources-original/math1/.gitkeep'):
+            self.assertFalse(health.forbidden_tracked(name))
+        for name in ('config/source-manifests/.gitkeep', 'import-inbox/.gitkeep',
+                     'review-queue/import-plans/.gitkeep',
+                     'review-queue/parsing-routing/.gitkeep',
+                     'review-queue/parsing-jobs/.gitkeep',
+                     'review-queue/parsing-checkpoints/.gitkeep',
+                     'vault/90-Parsed-Sources/.gitkeep',
+                     'vault/90-Parsed-Sources/Parsed-Sources-MOC.md'):
             self.assertFalse(health.forbidden_tracked(name))
 
     def test_git_failure_reported(self):

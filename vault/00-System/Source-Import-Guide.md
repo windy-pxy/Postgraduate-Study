@@ -86,7 +86,7 @@ source_id 默认为 `src-` 加 SHA-256 前 12 位；完整哈希存入清单。�
 
 工具先将原件复制为目标目录内的独占临时文件，刷盘后重算 SHA-256，再与计划及 inbox 比较。成功后使用不覆盖目标的原子发布；清单也采用同目录临时文件和原子发布。失败只清理本次创建且身份相符的临时文件和空目录，绝不删除既有用户文件或已经正式落盘的原件。
 
-清单字段包括 schema_version、source_id、sha256、original_filename、stored_relative_path、file_type、size_bytes、course、subject、source_type、classification_status、import_status、imported_at，以及 parser_status/name/version、page_count、parsed_at、parsed_output_relative_path、parse_review_status、notes。JSON 稳定排序、UTF-8，不保存绝对用户目录或资料正文。
+清单字段包括 schema_version、source_id、sha256、original_filename、stored_relative_path、file_type、size_bytes、course、subject、source_type、classification_status、import_status、imported_at，以及 parser_status/name/version、page_count、parsed_at、parsed_output_relative_path、parse_review_status、notes。JSON 稳定排序、UTF-8，不保存绝对用户目录或资料正文。真实清单属于本地学习数据，不进入 Git。
 
 刚导入时 `parser_status` 为 `not_started`，六个解析字段为空。PDF 解析器只在原件哈希通过、临时产物验证通过且输出目录原子发布后，才原子更新这些字段为 `parsed`、解析器名称/版本、页数、带时区的解析时间、项目内派生目录和 `review_required`。该更新不改写原有来源身份、哈希、分类或导入信息。
 
@@ -104,8 +104,12 @@ SHA-256 是判断内容是否一致的权威依据，文件名、大小和修改
 
 SHA-256 不是数字签名，也不能抵御有权限同时篡改原件、清单和基线的人。应保留可信 Git 历史与独立备份；清单仅新建，基线仅在明确命令且现状无异常时更新。verify、scan、list、status 均只读，不自动修改这些记录。list 只读取来源元数据；verify/scan 会流式读取二进制用于签名与哈希，不解析正文。
 
+真实 manifest、真实基线、导入计划和解析产物只保留本地并被 Git 忽略。仓库中的 `config/sources-original.baseline.example.json` 只说明空结构，不含真实 source_id、哈希、文件名、路径或时间；它不能替代真实基线，也不能作为动态学习资料的备份。
+
 Windows ACL 尚未设置。本工具也不自动设置 Windows 只读属性；即使以后设置，只读属性也可被有权限的用户撤销，不是强安全边界。操作锁可阻止本工具并发写入，但不是对抗其他恶意进程的隔离机制；导入时不要并发修改相关目录。
 
 本阶段不持久化审计日志。命令输出仅含相对路径、分类、ID、校验摘要和固定错误码，不输出正文、API Key 或底层异常中的绝对目录。建议不要把敏感信息写进文件名。合成测试只在项目内 tests/.runtime 运行并清理自己的临时目录，不修改实际 sources-original。Phase 2B 解析器同样按 source_id 工作，不接受项目外路径；其产物与正式笔记分开。
+
+来源完成基础解析后，Phase 2C 再由人工依资料类型选择 `math1_formula_dense`、`cs408_general` 或 `cs408_symbol_dense`。档案不改动导入分类和原件，只生成页面质量路由计划。增强候选和人工注释不得回写基础产物。
 
 [[00-System/Home|返回首页]] · [[00-System/Validation-Guide|统一验证说明]]

@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "case_id": "synthetic-placeholder",
+  "source_id": "src-000000000000",
+  "page_number": 1,
+  "contains_real_document_text": false,
+  "metrics": {
+    "subscript_recovery_rate": null,
+    "latex_render_rate": null,
+    "human_consistency_score": null,
+    "chinese_fidelity_rate": null,
+    "code_identifier_preservation_rate": null,
+    "table_structure_score": null,
+    "reading_order_score": null
+  },
+  "review_status": "template_only"
+}

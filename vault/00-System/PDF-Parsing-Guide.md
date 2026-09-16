@@ -1,6 +1,6 @@
 # 本地 PDF 解析与质量审核指南（Phase 2B）
 
-Phase 2B 把一份已经安全导入、登记并通过 SHA-256 校验的数字原生 PDF，转换成逐页、可审阅的 Markdown 派生产物。当前没有导入或解析任何真实学习资料；所有测试 PDF 都由测试程序在项目内临时生成。
+Phase 2B 把一份已经安全导入、登记并通过 SHA-256 校验的数字原生 PDF，转换成逐页、可审阅的 Markdown 派生产物。自动测试 PDF 由测试程序在项目内临时生成；已授权的真实来源必须遵守同样的只读、追溯和审核规则。
 
 ## 当前支持与明确不支持
 
@@ -79,5 +79,9 @@ vault/90-Parsed-Sources/<source_id>/
 PyMuPDF 的基础文本顺序由 PDF 内部对象与坐标决定，复杂多栏版面可能乱序；字体编码可能导致中文或符号乱码；图片检测不等于理解图片。整页预览只在空页、异常页、含图片或疑似公式/图形时生成，当前不做区域裁剪。
 
 解析产物目录与来源 manifest 不是一个整体原子事务。工具先发布已验证的目录，再原子更新 manifest；极端中断可能留下“目录已存在但 manifest 仍是 not_started”。反向的目录缺失、manifest 与报告页数/解析器/时间不一致也会被验证器报错。保留现场并人工检查，不得删除既有输出、手改 manifest 或盲目重跑。目标目录存在时始终拒绝重复解析。
+
+## Phase 2C 页面路由
+
+Phase 2B 结果是不可覆盖的基础候选。Phase 2C 使用 `parsing-profiles.yaml` 按页检查替换字符、上下标、公式、表格、多栏、阅读顺序和编码风险。正常页保留基础候选，异常页进入未来增强队列；任何增强结果都单独保存并保持 `review_required`。完整设计见 [[00-System/Scalable-Parsing-Architecture|可扩展解析架构]]。
 
 [[00-System/Home|返回首页]] · [[00-System/Source-Import-Guide|安全导入指南]] · [[00-System/Validation-Guide|统一验证说明]]
