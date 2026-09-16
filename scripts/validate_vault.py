@@ -3,6 +3,7 @@
 No API, environment secrets, original-file contents, writes, or deletions.
 """
 from datetime import date
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -32,6 +33,7 @@ TEMPLATES = {
 SYSTEM_NOTES = {
     '00-System/Home.md', '00-System/Metadata-Schema.md', '00-System/Linking-Rules.md',
     '00-System/Validation-Guide.md', '00-System/Review-Queue.md',
+    '00-System/Source-Import-Guide.md',
     '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
     '03-Knowledge-Notes/Knowledge-MOC.md', '04-Mistakes/Mistakes-MOC.md',
     '05-Past-Papers/Past-Papers-MOC.md', '06-Stage-Tests/Stage-Tests-MOC.md',
@@ -309,13 +311,16 @@ def validate_project(root):
     try:
         inventory = scan_tree(root, root / 'vault', skip_hidden=True)
         original_inventory = scan_tree(root, root / 'sources-original')
-        path_metadata(root / 'config')
-        baseline_path = root / 'config/sources-original.baseline.json'
-        path_metadata(baseline_path)
-        baseline = json.loads(baseline_path.read_text(encoding='utf-8'))
-        if baseline.get('schema_version') != 1 or not isinstance(baseline.get('entries'), dict):
-            raise ValueError('invalid inventory baseline')
-        issues = compare_originals(original_inventory, baseline['entries'])
+        path_metadata(root / 'scripts')
+        path_metadata(root / 'scripts/source_manager.py')
+        spec = importlib.util.spec_from_file_location('source_manager_vault', root / 'scripts/source_manager.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        try:
+            report = module.SourceManager(root).verify()
+            issues = [(item['path'], item['error'], '') for item in report['issues']]
+        except module.SourceError:
+            issues = [('sources-original', 'SOURCE_INTEGRITY_CHECK_FAILED', '')]
         assets = {name for name, entry in inventory.items() if entry['kind'] == 'file'}
         documents = {}
         for name in sorted(assets):

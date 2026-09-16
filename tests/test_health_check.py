@@ -69,6 +69,12 @@ class HealthTests(unittest.TestCase):
             self.assertIn('core.fsmonitor=false', args)
             self.assertTrue(run.call_args.kwargs['capture_output'])
 
+    def test_integrity_helper_link_refused_before_import(self):
+        with patch.object(health, 'safe_kind', return_value=False), \
+                patch.object(health.importlib.util, 'spec_from_file_location') as loader:
+            self.assertFalse(health.source_integrity(ROOT))
+            loader.assert_not_called()
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,25 +1,5 @@
 {
-  "schema_version": 1,
-  "entries": {
-    "408": {
-      "kind": "directory",
-      "size": null,
-      "mtime_ns": null
-    },
-    "408/.gitkeep": {
-      "kind": "file",
-      "size": 0,
-      "mtime_ns": 1789553331742937000
-    },
-    "math1": {
-      "kind": "directory",
-      "size": null,
-      "mtime_ns": null
-    },
-    "math1/.gitkeep": {
-      "kind": "file",
-      "size": 0,
-      "mtime_ns": 1789553331742937000
-    }
-  }
+  "algorithm": "sha256",
+  "schema_version": 2,
+  "sources": {}
 }

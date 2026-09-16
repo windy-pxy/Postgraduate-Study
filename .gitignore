@@ -49,3 +49,7 @@ api_cache/
 # Keep these after original-directory exceptions so no .gitkeep is re-included.
 **/.obsidian/
 **/.obsidian/**
+
+# Phase 2A: synthetic test sandboxes and operation lock stay local.
+/tests/.runtime/
+/config/.source-manager.lock

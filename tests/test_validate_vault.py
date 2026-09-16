@@ -226,14 +226,15 @@ class SafetyTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             vault.scan_tree(ROOT, Path('Z:/outside'))
 
-    def test_real_project_read_only_and_no_original_content_reads(self):
+    def test_real_project_read_only_and_no_original_text_reads(self):
         original_open = io.open
         def read_only(file, mode='r', *args, **kwargs):
             self.assertFalse(any(c in mode for c in 'wax+'))
             if isinstance(file, (str, Path)):
                 path = Path(file).absolute()
                 self.assertTrue(path.is_relative_to(ROOT))
-                self.assertFalse(path.is_relative_to(ROOT / 'sources-original'))
+                if path.is_relative_to(ROOT / 'sources-original'):
+                    self.assertIn('b', mode)  # Phase 2A permits binary SHA-256 checks only.
             return original_open(file, mode, *args, **kwargs)
         with patch('io.open', side_effect=read_only), \
                 patch.object(Path, 'write_text', side_effect=AssertionError('write forbidden')), \

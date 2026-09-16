@@ -5,6 +5,7 @@
 ```powershell
 py -3.12 -B scripts/health_check.py
 py -3.12 -B scripts/validate_vault.py
+py -3.12 -B scripts/source_manager.py verify
 py -3.12 -B -m unittest discover -s tests -v
 ```
 
@@ -22,13 +23,11 @@ py -3.12 -B -m unittest discover -s tests -v
 
 ## 原始资料基线
 
-`config/sources-original.baseline.json` 保存 Phase 1 开始时原始目录的路径、文件大小和修改时间。当前原始区只有两个空 .gitkeep。每次运行比较目录清单及元数据，可发现新增、缺失、改名或元数据变化；不读取原始资料内容、不更新基线。
+`config/sources-original.baseline.json` 已从 Phase 1 元数据快照升级为版本 2 的 SHA-256 身份锚点。目前实际原始区只有两个空 .gitkeep，没有真实来源。来源清单位于 `config/source-manifests/`，每份原件保存完整 SHA-256。健康检查与 Vault 验证均调用同一只读校验逻辑，流式读取原件二进制计算哈希，不解析或输出正文。
 
-新增资料也会触发 ORIGINAL_INVENTORY_CHANGED。本阶段不应出现任何新增原件或生成物。未来用户授权导入阶段才可以审阅并更新基线，不能为了清除报错自行重置它。换电脑或重新检出 Git 可能改变文件时间，须人工确认后另行授权更新基线。
+校验检测被修改/缺失原件、未登记原件、缺失/无效清单、同一哈希的冲突记录及清单与既有基线冲突。名称、大小、时间不能替代 SHA-256；单纯时间变化不会改变来源身份。verify 不更新记录，apply 仅新增原件和清单，新来源列为 baseline_pending；人工确认后才可单独 `baseline-update --apply` 补充锚点，存在完整性异常时拒绝。
 
-元数据基线不是内容哈希或实时监控，不能证明从未发生过写入；同尺寸且时间被还原的变更无法据此识别。程序不设置 ACL，不代替备份或操作系统只读权限。运行验证时请避免其他程序同时修改资料。
-
-当前基线不得描述为强防篡改。**Phase 2 导入真实资料前，必须先升级为 SHA-256 内容哈希校验。** Windows ACL 尚未启用；本阶段仅补充说明，不实现 Phase 2 导入或哈希升级，也不修改现有基线。
+禁止删除、重建或改空基线来掩盖异常。SHA-256 并非数字签名或实时监控，不能抵御同时改动文件与校验记录的有权限者。Windows ACL 尚未启用；Windows 只读属性也不是强安全边界。验证时请避免其他程序并发修改资料。异常处理与已知限制见 [[00-System/Source-Import-Guide|安全导入指南]]。
 
 ## 错误与处置
 
@@ -44,7 +43,9 @@ py -3.12 -B -m unittest discover -s tests -v
 | LINK_MISSING_OR_AMBIGUOUS | 双链目标缺失、越界或短标题重名 |
 | UNRESOLVED_PLACEHOLDER | 正式笔记仍有模板占位符 |
 | SOURCE_CITATION_REQUIRED / SOURCE_FILE_MISSING | 资料笔记缺来源记录或文件 |
-| ORIGINAL_INVENTORY_CHANGED | 原始目录与只读基线不一致 |
+| HASH_MISMATCH / UNREGISTERED_ORIGINAL | 原件哈希改变或存在未登记原件 |
+| BASELINE_CONFLICT / BASELINE_SOURCE_MISSING | 清单与已有身份锚点冲突或缺失 |
+| SOURCE_INTEGRITY_CHECK_FAILED | 来源清单、路径或基线结构无法安全校验 |
 | UNSAFE_PATH_OR_UNREADABLE_INPUT | 路径不安全或输入不可读 |
 
 每次运行由人工按报错逐项检查；验证器不修改笔记，不删除、不移动资料。通过验证仅表示结构满足规则，不能保证页码、答案、语义关系真实。

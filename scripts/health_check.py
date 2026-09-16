@@ -1,4 +1,5 @@
-"""Phase 0 read-only checks. No material, secret, or environment reads."""
+"""Read-only health checks; Phase 2A adds binary integrity hashing, no text parsing."""
+import importlib.util
 from pathlib import Path, PurePosixPath
 import subprocess
 
@@ -14,11 +15,24 @@ DIRECTORIES = (
     'vault/90-Parsed-Sources', 'vault/99-Templates',
     'sources-original', 'sources-original/math1', 'sources-original/408',
     'import-inbox', 'review-queue', 'archive', 'scripts', 'config',
-    'prompts', 'tests', 'logs',
+    'prompts', 'tests', 'logs', 'config/source-manifests', 'review-queue/import-plans',
 )
 FILES = ('AGENTS.md', 'README.md', '.gitignore', '.env.example',
          'config/providers.example.yaml', 'scripts/health_check.py',
-         'tests/test_health_check.py')
+         'tests/test_health_check.py', 'scripts/source_manager.py',
+         'config/sources-original.baseline.json')
+
+
+def source_integrity(root):
+    if not safe_kind(root, 'scripts', True) or not safe_kind(root, 'scripts/source_manager.py'):
+        return False
+    spec = importlib.util.spec_from_file_location('source_manager_health', root / 'scripts/source_manager.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    try:
+        return module.SourceManager(root).verify()['ok']
+    except (module.SourceError, OSError, ValueError, TypeError, KeyError):
+        return False
 
 
 def safe_kind(root, relative, directory=False):
@@ -88,6 +102,7 @@ def main():
     root = Path(__file__).absolute().parent.parent
     try:
         results = check(root)
+        results.append(('SHA-256 source integrity and baseline consistency', source_integrity(root)))
     except OSError:
         print('FAIL: filesystem metadata unavailable (details withheld)')
         return 1
