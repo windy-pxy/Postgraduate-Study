@@ -23,7 +23,7 @@
 所有适配器统一返回 parser_id、parser_version、parser_mode、page_number、text、formula_candidates、image_candidates、layout_warnings、extraction_metrics、review_status 和 output_relative_path。
 
 - `basic_pymupdf`：当前唯一实现，只读处理单页。
-- `enhanced_mineru_pipeline`：接口占位，当前调用会明确返回未安装。
+- `enhanced_mineru_standard`：已实现的单页本地增强器；使用 ONNX 与 llama.cpp，输出待审核候选，绝不覆盖基础结果。
 - `enhanced_docling_formula`：接口占位，当前调用会明确返回未安装。
 - `optional_mathpix_formula_crop`：未来可选云端裁剪兜底，默认禁用网络；必须另行明确授权。
 
@@ -103,8 +103,8 @@ stateDiagram-v2
 
 只有增强候选仍无法还原符号、公式语义无法确认或阅读顺序需要原页判断时，才建立人工修正注释。修正必须引用 source_id、原始页码、页面预览和修改理由；不能直接编辑基础结果或增强候选。
 
-## 未来接入 MinerU
+## MinerU 本地接入
 
-接入前先固定版本、模型文件哈希和许可证，在项目内建立独立虚拟环境，并把所有缓存指向项目内。先用 `tests/fixtures/parsing-evaluation/` 的合成评估集和少量已授权异常页测试，再启用 `enhanced_mineru_pipeline` 适配器。安装和模型下载必须作为独立阶段明确授权，不能改变已有 PyMuPDF 产物或 manifest 身份。
+MinerU 4.0.0 已按上述边界接入：版本、模型 revision 和关键文件哈希固定在配置样例，独立虚拟环境和全部缓存位于项目内。适配器只处理路由确认的单页，并把真实候选写入被忽略的 `enhanced/mineru/page-XXXX/`；Phase 2B 基础产物与来源 manifest 身份不变。具体命令和人工审核方法见 [[00-System/Enhanced-Parsing-Guide|本地公式增强解析指南]]。
 
 入口：[[00-System/Home|首页]] · [[00-System/PDF-Parsing-Guide|PDF 解析指南]] · [[00-System/Validation-Guide|验证说明]]

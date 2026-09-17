@@ -41,6 +41,9 @@ class MetadataTests(unittest.TestCase):
         for mastery in range(6):
             self.assertEqual(codes({'note.md': note(metadata(mastery=mastery))}), set())
 
+    def test_enhanced_parsing_guide_is_registered_system_note(self):
+        self.assertIn('00-System/Enhanced-Parsing-Guide.md', vault.SYSTEM_NOTES)
+
     def test_all_types_and_both_courses(self):
         for kind in vault.TYPES:
             for course, subject in [('math1', 'Calculus'), ('408', 'Operating-System')]:
@@ -206,6 +209,7 @@ class IgnoreRuleTests(unittest.TestCase):
             'review-queue/parsing-routing/src-abcdef123456.json',
             'review-queue/parsing-jobs/job.json',
             'review-queue/parsing-checkpoints/checkpoint.json', 'models/cache/model.bin',
+            'review-queue/enhanced-experiments/run/output.json',
             'vault/90-Parsed-Sources/src-abcdef123456/index.md',
             'sources-original/math1/book.PDF', 'sources-original/408/slides.ppt',
             'sources-original/408/slides.pptx', 'sources-original/math1/book.doc',
@@ -220,6 +224,9 @@ class IgnoreRuleTests(unittest.TestCase):
             'scripts/pdf_parser.py', 'tests/test_pdf_parser.py', 'requirements.txt',
             'scripts/parsing_architecture.py', 'tests/test_parsing_architecture.py',
             'config/parsing-profiles.yaml', 'config/resource-limits.yaml',
+            'config/enhanced-parser.example.json', 'config/mineru-4.0.requirements.lock.txt',
+            'scripts/enhanced_parser.py', 'scripts/enhanced_worker.py',
+            'vault/00-System/Enhanced-Parsing-Guide.md',
             'config/providers.example.yaml', 'config/sources-original.baseline.example.json',
             'config/source-manifests/.gitkeep', 'import-inbox/.gitkeep',
             'review-queue/import-plans/.gitkeep', 'review-queue/parsing-routing/.gitkeep',

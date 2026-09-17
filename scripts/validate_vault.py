@@ -35,6 +35,7 @@ SYSTEM_NOTES = {
     '00-System/Validation-Guide.md', '00-System/Review-Queue.md',
     '00-System/Source-Import-Guide.md',
     '00-System/PDF-Parsing-Guide.md',
+    '00-System/Enhanced-Parsing-Guide.md',
     '00-System/Scalable-Parsing-Architecture.md',
     '00-System/Batch-Parsing-Guide.md',
     '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
@@ -336,6 +337,12 @@ def validate_project(root):
         parser_module = importlib.util.module_from_spec(parser_spec)
         parser_spec.loader.exec_module(parser_module)
         parser = parser_module.PDFParser(root)
+        path_metadata(root / 'scripts/enhanced_parser.py')
+        enhanced_spec = importlib.util.spec_from_file_location(
+            'enhanced_parser_vault', root / 'scripts/enhanced_parser.py')
+        enhanced_module = importlib.util.module_from_spec(enhanced_spec)
+        enhanced_spec.loader.exec_module(enhanced_module)
+        enhanced_parser = enhanced_module.EnhancedParser(root)
         parsed_ids = []
         for name, entry in inventory.items():
             parts = PurePosixPath(name).parts
@@ -351,6 +358,23 @@ def validate_project(root):
                 parser.verify_output(source_id)
             except (parser_module.ParserError, parser_module.SourceError, OSError, ValueError, TypeError, KeyError):
                 issues.append((f'90-Parsed-Sources/{source_id}', 'PARSED_OUTPUT_INVALID', ''))
+            candidate_root = root / 'vault/90-Parsed-Sources' / source_id / 'enhanced/mineru'
+            if candidate_root.is_dir():
+                for candidate in sorted(candidate_root.iterdir()):
+                    match = re.fullmatch(r'page-(\d{4})', candidate.name)
+                    if not match or not candidate.is_dir():
+                        if not candidate.name.startswith('.tmp-page-'):
+                            issues.append((
+                                f'90-Parsed-Sources/{source_id}/enhanced/mineru/{candidate.name}',
+                                'ENHANCED_OUTPUT_INVALID', ''))
+                        continue
+                    try:
+                        enhanced_parser.verify_output(source_id, int(match.group(1)))
+                    except (enhanced_module.EnhancedError, enhanced_module.SourceError,
+                            OSError, ValueError, TypeError, KeyError):
+                        issues.append((
+                            f'90-Parsed-Sources/{source_id}/enhanced/mineru/{candidate.name}',
+                            'ENHANCED_OUTPUT_INVALID', ''))
         assets = {name for name, entry in inventory.items() if entry['kind'] == 'file'}
         documents = {}
         for name in sorted(assets):

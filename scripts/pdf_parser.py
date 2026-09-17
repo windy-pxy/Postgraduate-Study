@@ -461,10 +461,14 @@ class PDFParser:
         if directory.name != record['source_id'] and not directory.name.startswith('.tmp-' + record['source_id'] + '-'):
             fail('OUTPUT_DIRECTORY_INVALID')
         required = {'index.md', 'review.md', 'parse-report.json', 'pages', 'assets'}
+        supplemental = {'enhanced', 'quality', 'annotations', 'accepted'}
         names = {p.name for p in directory.iterdir()}
-        if not required.issubset(names) or names - required:
+        if not required.issubset(names) or names - required - supplemental:
             fail('OUTPUT_STRUCTURE_INVALID')
         if not (directory / 'pages').is_dir() or not (directory / 'assets').is_dir():
+            fail('OUTPUT_STRUCTURE_INVALID')
+        if any((directory / name).exists() and not (directory / name).is_dir()
+               for name in supplemental):
             fail('OUTPUT_STRUCTURE_INVALID')
         report = supplied_report or self._load_report(directory / 'parse-report.json')
         mandatory = {'schema_version', 'source_id', 'source_sha256', 'derived', 'review_status',
@@ -577,7 +581,11 @@ class PDFParser:
                 or record['parsed_output_relative_path'] != f'{OUTPUT_ROOT}/{record["source_id"]}'
                 or record['parse_review_status'] != 'review_required'):
             fail('MANIFEST_PARSE_STATE_MISMATCH')
-        for path in directory.rglob('*'):
+        core_paths = [directory / 'index.md', directory / 'review.md',
+                      directory / 'parse-report.json']
+        core_paths += list((directory / 'pages').iterdir())
+        core_paths += list((directory / 'assets').iterdir())
+        for path in core_paths:
             info = self.manager._metadata(path)
             if stat.S_ISREG(info.st_mode) and path.suffix.lower() in ('.md', '.json'):
                 content = path.read_text(encoding='utf-8')

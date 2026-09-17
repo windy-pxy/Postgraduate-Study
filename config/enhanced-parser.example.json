@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "parser_id": "enhanced_mineru_standard",
+  "parser_version": "4.0.0",
+  "environment_relative_path": ".venv/mineru",
+  "worker_relative_path": "scripts/enhanced_worker.py",
+  "model_home_relative_path": "models/cache/mineru-home",
+  "tier": "standard",
+  "small_backend": "onnx",
+  "vlm_engine": "llama-cpp",
+  "model_repositories": [
+    {
+      "model_id": "opendatalab/MinerU-4_models_onnx",
+      "revision": "358310b4f64b95f9fefc372ad899356e4111f376",
+      "license": "not declared in repository card metadata; review upstream component licenses before redistribution",
+      "source": "huggingface"
+    },
+    {
+      "model_id": "42ailab/MinerU2.5-Pro-2605-1.2B-GGUF",
+      "revision": "9185688a0495e1577d521a757c7c0b62dd38ca48",
+      "license": "apache-2.0",
+      "source": "huggingface"
+    }
+  ],
+  "critical_model_files": [
+    {
+      "relative_path": "models/cache/mineru-home/models/MinerU-4_models_onnx/Layout/PP-DocLayoutV2/inference.onnx",
+      "sha256": "cd540dc296ff3115fe78efa65b68501e6a8dc74b198acc9834a725ffaa095aac"
+    },
+    {
+      "relative_path": "models/cache/mineru-home/models/MinerU-4_models_onnx/MFR/pp_formulanet_plus_m/PP-FormulaNet_plus-M.onnx",
+      "sha256": "20a32595c2b30282dcd069e6295e9fad96115697beb66acb9b681b814006d193"
+    },
+    {
+      "relative_path": "models/cache/mineru-home/models/MinerU2.5-Pro-2605-1.2B-GGUF/MinerU2.5-Pro-2605-1.2B-Q8_0.gguf",
+      "sha256": "3f3523429c880d675c0330cb3de78240452bc40a961d037e24f91ab8488f03e7"
+    },
+    {
+      "relative_path": "models/cache/mineru-home/models/MinerU2.5-Pro-2605-1.2B-GGUF/mmproj-MinerU2.5-Pro-2605-1.2B-Q8_0.gguf",
+      "sha256": "b6c08ab50352677f7396af45ee60682f353f55488e26911d8154bfc37514d3f8"
+    }
+  ],
+  "timeouts": {
+    "model_readiness_seconds": 120,
+    "cold_start_seconds": 600,
+    "single_page_seconds": 600
+  },
+  "network_policy": "local_models_and_socket_blocking",
+  "max_pages_per_run": 1,
+  "review_status": "review_required"
+}

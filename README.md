@@ -4,13 +4,15 @@
 
 ## 当前阶段
 
-Phase 0、Phase 1、Phase 2A、Phase 2B 和 Phase 2C 架构已提交。当前 Phase 2D-0 只建立大规模资料的批次统计、资源估算、断点检查和轻量队列；这些命令不调用解析器。不安装 MinerU、Docling、OCR、CUDA 版 PyTorch 或 Docker，不下载模型，不调用网络/API，不重解析或覆盖已有资料。
+Phase 0 至 Phase 2D-0 已提交。当前增强阶段已在项目隔离环境中安装 MinerU 4.0.0，并跑通合成页和一个已授权真实异常页的单页本地推理。增强结果仍是待审核候选，不自动进入检索接受区或知识笔记。Docling、云端 OCR/API、Claudian、Docker 和系统级依赖仍未安装或调用。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
 Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接执行脚本即可。完整中文指南在 `vault/00-System/Source-Import-Guide.md`。
 
 Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定版本；本次没有创建 `.venv` 或安装软件。迁移环境如需安装，只允许在项目内 `.venv` 中按 requirements 安装，不得改全局 Python。PDF 解析说明见 `vault/00-System/PDF-Parsing-Guide.md`。
+
+公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-System/Enhanced-Parsing-Guide.md`。
 
 ## 目录用途
 
@@ -65,6 +67,7 @@ py -3.12 -B scripts/health_check.py
 py -3.12 -B scripts/validate_vault.py
 py -3.12 -B scripts/source_manager.py verify
 py -3.12 -B scripts/pdf_parser.py --help
+py -3.12 -B scripts/enhanced_parser.py model-status
 py -3.12 -B -m unittest discover -s tests -v
 git status --short
 git diff --stat
@@ -141,6 +144,17 @@ py -3.12 -B scripts/parsing_architecture.py retry-page <source_id> <页码>
 ```
 
 `batch-plan` 默认只输出计划，`--save` 也只保存队列元数据，不启动解析。无任何筛选的全库计划必须额外给出 `--confirm-all-sources`。默认每批最多 25 页、并发 1，重型增强批次与基础批次严格分开。完整说明见 `vault/00-System/Batch-Parsing-Guide.md`。
+
+Phase 2E 的单页增强命令默认 dry-run，只处理已进入增强队列的页面：
+
+```powershell
+py -3.12 -B scripts/enhanced_parser.py inspect <source_id> <页码>
+py -3.12 -B scripts/enhanced_parser.py parse <source_id> <页码>
+py -3.12 -B scripts/enhanced_parser.py parse <source_id> <页码> --apply
+py -3.12 -B scripts/enhanced_parser.py verify-output <source_id> <页码>
+```
+
+目标存在时拒绝覆盖。增强候选包含原页预览、模型 Markdown、结构化结果、运行指标、候选清单和审核清单；真实产物继续被 Git 忽略。
 
 ## 后续路线（每阶段开始前确认）
 

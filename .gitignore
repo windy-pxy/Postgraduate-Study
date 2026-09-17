@@ -71,6 +71,8 @@ api_cache/
 !/review-queue/parsing-jobs/.gitkeep
 /review-queue/parsing-checkpoints/*
 !/review-queue/parsing-checkpoints/.gitkeep
+/review-queue/enhanced-experiments/*
+!/review-queue/enhanced-experiments/.gitkeep
 
 # Real derived outputs remain local; keep only the system index and root anchor.
 /vault/90-Parsed-Sources/*

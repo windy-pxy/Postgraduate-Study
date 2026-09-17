@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "synthetic_only": true,
+  "development": {
+    "file": "formula-development.pdf",
+    "expected_semantics": [
+      "x_1, x_2, x_{n+1}",
+      "a^2 and b_i",
+      "[X]_补 = 10110110",
+      "bit b_7 and bit b_0",
+      "-7 < -3 and 0 <= i < 8",
+      "fraction (x+1)/(x-1)",
+      "sqrt(a^2+b^2)",
+      "sum i=1 to n",
+      "limit x->0",
+      "integral 0 to 1",
+      "2x2 matrix",
+      "piecewise function",
+      "array[i+1] and cache_line[tag_bits]",
+      "table and choices A,B,C,D in order"
+    ]
+  },
+  "held_out": {
+    "file": "formula-held-out.pdf",
+    "used_for_tuning": false,
+    "expected_semantics": [
+      "u_{k+1} = 2u_k - u_{k-1}",
+      "[Y]_原 != [Y]_补",
+      "-128 <= Y <= 127",
+      "address[31:12], index[11:5], offset[4:0]",
+      "integral lower a upper b",
+      "det(B) = ad - bc",
+      "choices A=00, B=01, C=10, D=11 in order"
+    ]
+  },
+  "scoring_dimensions": [
+    "symbol_content",
+    "subscript_superscript_relations",
+    "chinese_preservation",
+    "reading_order",
+    "wall_time_seconds",
+    "peak_memory_bytes",
+    "peak_vram_bytes"
+  ]
+}

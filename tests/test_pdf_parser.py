@@ -142,6 +142,15 @@ class PDFParserTests(unittest.TestCase):
         self.assertNotIn('$$', page)
         self.assertTrue(self.parser.verify_output(self.source_id)['ok'])
 
+    def test_base_verifier_allows_separate_candidate_layers_only(self):
+        self.apply()
+        for name in ('enhanced', 'quality', 'annotations', 'accepted'):
+            (self.output() / name).mkdir()
+        self.assertTrue(self.parser.verify_output(self.source_id)['ok'])
+        (self.output() / 'unexpected-layer').mkdir()
+        with self.assertRaisesRegex(pdf.ParserError, 'OUTPUT_STRUCTURE_INVALID'):
+            self.parser.verify_output(self.source_id)
+
     def test_single_page_exception_is_reported_not_skipped(self):
         original = self.parser._extract_page
         def extract(page):

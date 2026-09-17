@@ -112,4 +112,6 @@ Windows ACL 尚未设置。本工具也不自动设置 Windows 只读属性；�
 
 来源完成基础解析后，Phase 2C 再由人工依资料类型选择 `math1_formula_dense`、`cs408_general` 或 `cs408_symbol_dense`。档案不改动导入分类和原件，只生成页面质量路由计划。增强候选和人工注释不得回写基础产物。
 
+路由为 `enhanced_parse_queued` 的页可使用 MinerU 本地单页增强器；它仍然只读原件，并写入独立的待审核候选目录。导入、基础解析和增强候选是三个不同步骤，增强成功不会改变来源身份、哈希或基础解析 manifest。详见 [[00-System/Enhanced-Parsing-Guide|本地公式增强解析指南]]。
+
 [[00-System/Home|返回首页]] · [[00-System/Validation-Guide|统一验证说明]]
