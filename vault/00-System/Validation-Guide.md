@@ -11,6 +11,7 @@ py -3.12 -B scripts/parsing_architecture.py validate-config
 py -3.12 -B scripts/parsing_architecture.py verify-plan <source_id>
 py -3.12 -B scripts/enhanced_parser.py model-status
 py -3.12 -B scripts/local_search.py verify
+py -3.12 -B scripts/review_manager.py verify
 py -3.12 -B scripts/validate_claudian_pilot.py check-policy
 py -3.12 -B scripts/validate_claudian_pilot.py run-pilot
 py -3.12 -B -m unittest discover -s tests -v
@@ -32,6 +33,7 @@ py -3.12 -B -m unittest discover -s tests -v
 - Phase 2D-0 校验批次上限、筛选条件、资源估算、队列去重、断点恢复和单页重试。计划命令必须保持 `would_parse: false`，无筛选的全库计划需要显式确认。
 - 本地增强验证会检查已登记来源、逐页路由、关键模型 SHA-256、新候选目录文件全集、来源页码、原件哈希和 `review_required`。它验证可追溯结构，不能证明 LaTeX 或数学语义正确。
 - 本地检索验证会检查来源完整性、SQLite 元数据、FTS 行数、来源/内容哈希、项目内相对路径和版本审核状态。索引验证通过表示快照一致，不表示片段或公式已经人工判定正确。
+- 人工审核验证会检查候选哈希、不可覆盖接受快照、接受/撤销事件、审核时间、来源 SHA-256 和同页唯一有效接受。任何事件状态变化都会使旧索引失效；验证不会自动接受、撤销、删除或重建索引。
 - Claudian 试点验证只检查项目规则和本地检索契约：正式查询无 accepted 内容时必须返回“暂无已审核资料”，显式预览必须保留审核状态、来源、页码、解析器版本和 basic/enhanced 分区。脚本不调用模型，UI 内问答仍需人工核对。
 
 ## 原始资料基线

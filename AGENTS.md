@@ -32,5 +32,6 @@
 28. 增强解析只接受完整性通过、已登记且路由为 `enhanced_parse_queued` 的单页。增强结果写入新的 `enhanced/mineru/page-XXXX/` 候选目录，必须保持 `derived`、`candidate_only` 和 `review_required`；不得覆盖基础结果、重复解析已有目标或自动生成 accepted 内容。
 29. 本地检索默认只使用明确人工接受的 `accepted/pages/page-XXXX.md`。待审核基础/增强候选仅可经显式预览选项加入索引和查询，必须显示风险与解析版本；不得生成答案或把同页多个版本无标识合并。SQLite 索引可重建但不进入 Git。
 30. Claudian 学习试点使用 `vault/AGENTS.md` 中的 `study_readonly_pilot` 规则。必须在 Claudian 设置中选择 Codex、Native Windows、Normal/Safe 权限与 `read-only`；不得使用 YOLO、workspace-write、MCP、子代理或自动编辑。正式问答只引用 accepted 内容；候选预览必须明确标注待审核、来源 ID、页码和解析器版本。Claudian 仅可在 vault 内列目录、搜索和读取文件，不得执行项目脚本、写入型或网络命令，不得自行接受候选、下载依赖或创建文件；仅当用户明确说“生成草稿”时，未来写入模式才可在 `vault/03-Knowledge-Notes/AI-Drafts/` 新建草稿，且仍需另行切换受控写入模式。
+31. accepted 内容必须由 Phase 3B 审核工具通过显式 `accept --apply` 新建不可覆盖快照和接受事件；仅修改 frontmatter 不构成有效接受。接受与撤销默认 dry-run，撤销只追加事件并保留历史快照。正式索引必须核验原件、候选、快照、接受事件和撤销状态；审核状态变化后旧索引必须拒绝查询，不能自动接受、覆盖或删除历史。
 
 这些是项目行为约束，不代表已经设置 Windows ACL。Phase 0 不修改系统权限；后续写入工具必须实现并测试路径保护。

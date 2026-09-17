@@ -26,6 +26,7 @@ Phase 1 至本地增强与检索基础已完成；当前正在进行 Claudian + 
 - [[00-System/PDF-Parsing-Guide|本地 PDF 解析与质量审核指南]]
 - [[00-System/Enhanced-Parsing-Guide|本地公式增强解析指南]]
 - [[00-System/Local-Retrieval-Guide|本地页级检索指南]]
+- [[00-System/Review-Acceptance-Guide|人工审核与接受指南]]
 - [[00-System/Claudian-Study-Pilot-Guide|Claudian 只读学习问答试点]]
 - [[00-System/Scalable-Parsing-Architecture|可扩展解析架构]]
 - [[00-System/Batch-Parsing-Guide|大规模资料批次规划指南]]

@@ -77,6 +77,8 @@ api_cache/
 !/review-queue/parsing-checkpoints/.gitkeep
 /review-queue/enhanced-experiments/*
 !/review-queue/enhanced-experiments/.gitkeep
+/review-queue/acceptance-events/*
+!/review-queue/acceptance-events/.gitkeep
 # Page-level review aids and corrected candidates contain parsed content; keep local.
 /review-queue/*.md
 

@@ -25,6 +25,7 @@ REQUIRED_POLICY_TEXT = (
     'import-inbox/', 'config/source-manifests/', 'config/sources-original.baseline.json',
     'review-queue/', '生成草稿', '03-Knowledge-Notes/AI-Drafts/',
     '只读文件操作', '不得执行项目脚本', '写入型命令',
+    '有效接受事件',
     '不得自行把候选内容标为 accepted/approved',
 )
 
@@ -79,6 +80,8 @@ def run_pilot(root=ROOT, source_id=PILOT_SOURCE, page=PILOT_PAGE):
 
 
 def main(argv=None):
+    if hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description='Validate the read-only Claudian study pilot.')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('check-policy')

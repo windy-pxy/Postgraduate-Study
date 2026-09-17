@@ -13,7 +13,7 @@
 
 ## 检索与回答
 
-- 正式问答只可使用 `90-Parsed-Sources/<source_id>/accepted/` 下已明确人工审核为 `accepted` 的内容。
+- 正式问答只可使用 `90-Parsed-Sources/<source_id>/accepted/` 下经 Phase 3B 有效接受事件授权、未撤销且通过哈希验证的快照；仅有 `review_status: accepted` 字段不构成有效接受。
 - 当前没有匹配的已审核内容时，原样回答“暂无已审核资料”，然后说明可以由用户明确要求查看待审核候选预览；不得用候选内容补成正式答案。
 - 只有用户明确要求“预览待审核候选”时，才可读取基础或增强候选。输出必须逐项显示：`review_required`、`source_id`、原始页码、`parser_id` 与 `parser_version`。
 - 基础候选和增强候选必须分开列出；同页多版本不得合并，不得把候选表述为教材事实或已确认结论。

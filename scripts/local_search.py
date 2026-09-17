@@ -34,9 +34,15 @@ except ModuleNotFoundError:
     enhanced_module = load_script('enhanced_parser_for_search')
     EnhancedParser, EnhancedError = enhanced_module.EnhancedParser, enhanced_module.EnhancedError
 
+try:
+    from review_manager import ReviewManager, ReviewError
+except ModuleNotFoundError:
+    review_module = load_script('review_manager_for_search')
+    ReviewManager, ReviewError = review_module.ReviewManager, review_module.ReviewError
+
 PROJECT_ROOT = Path(__file__).absolute().parent.parent
 INDEX_RELATIVE = 'indexes/local-search.sqlite3'
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 PAGE_NAME = re.compile(r'page-(\d{4})\.md')
 ENHANCED_PAGE_NAME = re.compile(r'page-(\d{4})')
 
@@ -109,6 +115,7 @@ class LocalSearch:
     def __init__(self, root=PROJECT_ROOT):
         self.root = Path(root).absolute()
         self.manager = SourceManager(self.root)
+        self.reviews = ReviewManager(self.root)
 
     def _records(self):
         integrity = self.manager.verify()
@@ -120,9 +127,10 @@ class LocalSearch:
         return records
 
     def _entry(self, record, page, version, parser_id, parser_version,
-               review_status, relative, content):
+               review_status, relative, content, acceptance_event_id=None):
         if (type(page) is not int or page < 1 or version not in {'accepted', 'basic', 'enhanced'}
                 or review_status not in {'accepted', 'review_required'}
+                or (version == 'accepted') != bool(acceptance_event_id)
                 or not safe_relative(relative, f'vault/90-Parsed-Sources/{record["source_id"]}')):
             fail('INDEX_ENTRY_INVALID')
         return {
@@ -131,33 +139,18 @@ class LocalSearch:
             'parser_version': parser_version, 'review_status': review_status,
             'relative_path': relative, 'source_pdf_relative_path': record['stored_relative_path'],
             'content_sha256': digest_text(content), 'content': content,
+            'acceptance_event_id': acceptance_event_id,
         }
 
-    def _accepted(self, record):
-        folder = self.manager.path(
-            f'vault/90-Parsed-Sources/{record["source_id"]}/accepted/pages',
-            f'vault/90-Parsed-Sources/{record["source_id"]}')
-        if not folder.is_dir():
-            return []
+    def _accepted(self, record, active_snapshots):
         entries = []
-        for path in sorted(folder.glob('page-*.md')):
-            match = PAGE_NAME.fullmatch(path.name)
-            if not match:
-                fail('ACCEPTED_FILENAME_INVALID')
-            metadata, content = frontmatter(path.read_text(encoding='utf-8'))
-            page = int(match.group(1))
-            required = {'source_id', 'source_sha256', 'source_page', 'derived',
-                        'review_status', 'parser_id', 'parser_version'}
-            if (set(metadata) != required or metadata['source_id'] != record['source_id']
-                    or metadata['source_sha256'] != record['sha256']
-                    or metadata['source_page'] != page or metadata['derived'] is not True
-                    or metadata['review_status'] != 'accepted'
-                    or not isinstance(metadata['parser_id'], str)
-                    or not isinstance(metadata['parser_version'], str) or not content):
-                fail('ACCEPTED_METADATA_INVALID')
-            relative = path.relative_to(self.root).as_posix()
-            entries.append(self._entry(record, page, 'accepted', metadata['parser_id'],
-                                       metadata['parser_version'], 'accepted', relative, content))
+        for accepted in active_snapshots:
+            if accepted['source_id'] != record['source_id']:
+                continue
+            entries.append(self._entry(
+                record, accepted['source_page'], 'accepted', accepted['parser_id'],
+                accepted['parser_version'], 'accepted', accepted['snapshot_relative_path'],
+                accepted['content'], accepted['event_id']))
         return entries
 
     def _basic(self, record):
@@ -209,8 +202,13 @@ class LocalSearch:
 
     def collect(self, include_review_candidates=False):
         entries = []
-        for record in self._records().values():
-            entries.extend(self._accepted(record))
+        records = self._records()
+        try:
+            active_snapshots = self.reviews.active_snapshots()
+        except ReviewError:
+            fail('ACCEPTANCE_VALIDATION_FAILED')
+        for record in records.values():
+            entries.extend(self._accepted(record, active_snapshots))
             if include_review_candidates:
                 entries.extend(self._basic(record)); entries.extend(self._enhanced(record))
         return sorted(entries, key=lambda item: (
@@ -222,6 +220,10 @@ class LocalSearch:
             fail('INDEX_EXISTS_USE_REBUILD')
         target.parent.mkdir(parents=True, exist_ok=True)
         entries = self.collect(include_review_candidates)
+        try:
+            acceptance_state = self.reviews.state_sha256()
+        except ReviewError:
+            fail('ACCEPTANCE_VALIDATION_FAILED')
         temporary = target.parent / f'.tmp-local-search-{uuid.uuid4().hex}.sqlite3'
         connection = None
         try:
@@ -235,24 +237,26 @@ class LocalSearch:
                     parser_id TEXT NOT NULL, parser_version TEXT NOT NULL,
                     review_status TEXT NOT NULL, relative_path TEXT NOT NULL,
                     source_pdf_relative_path TEXT NOT NULL, content_sha256 TEXT NOT NULL,
-                    content TEXT NOT NULL,
+                    content TEXT NOT NULL, acceptance_event_id TEXT,
                     UNIQUE(source_id,page_number,version_kind,parser_id,relative_path)
                 ) STRICT;
                 CREATE VIRTUAL TABLE documents_fts USING fts5(content, tokenize='trigram');
             ''')
             metadata = {'schema_version': SCHEMA_VERSION, 'created_at': now_iso(),
-                        'includes_review_candidates': bool(include_review_candidates)}
+                        'includes_review_candidates': bool(include_review_candidates),
+                        'acceptance_state_sha256': acceptance_state}
             connection.executemany('INSERT INTO meta(key,value) VALUES (?,?)',
                                    [(key, json.dumps(value)) for key, value in metadata.items()])
             for entry in entries:
                 values = tuple(entry[key] for key in (
                     'source_id', 'source_sha256', 'page_number', 'version_kind', 'parser_id',
                     'parser_version', 'review_status', 'relative_path',
-                    'source_pdf_relative_path', 'content_sha256', 'content'))
+                    'source_pdf_relative_path', 'content_sha256', 'content',
+                    'acceptance_event_id'))
                 cursor = connection.execute(
                     'INSERT INTO documents(source_id,source_sha256,page_number,version_kind,'
                     'parser_id,parser_version,review_status,relative_path,source_pdf_relative_path,'
-                    'content_sha256,content) VALUES (?,?,?,?,?,?,?,?,?,?,?)', values)
+                    'content_sha256,content,acceptance_event_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', values)
                 connection.execute('INSERT INTO documents_fts(rowid,content) VALUES (?,?)',
                                    (cursor.lastrowid, entry['content']))
             connection.commit(); connection.close(); connection = None
@@ -281,6 +285,16 @@ class LocalSearch:
             fail('INDEX_MISSING')
         return sqlite3.connect(f'file:{path.as_posix()}?mode=ro', uri=True)
 
+    def _assert_acceptance_state(self, connection):
+        try:
+            stored = json.loads(connection.execute(
+                "SELECT value FROM meta WHERE key='acceptance_state_sha256'").fetchone()[0])
+            current = self.reviews.state_sha256()
+        except (ReviewError, TypeError, sqlite3.Error):
+            fail('INDEX_ACCEPTANCE_STATE_INVALID')
+        if stored != current:
+            fail('INDEX_ACCEPTANCE_STATE_CHANGED_REBUILD_REQUIRED')
+
     def search(self, query, source_id=None, page_number=None,
                include_review_candidates=False, limit=10):
         if not isinstance(query, str) or not query.strip() or len(query) > 200:
@@ -294,6 +308,7 @@ class LocalSearch:
             fail('LIMIT_INVALID')
         connection = self._connect()
         try:
+            self._assert_acceptance_state(connection)
             accepted_total = connection.execute(
                 "SELECT count(*) FROM documents WHERE review_status='accepted'").fetchone()[0]
             conditions, parameters = [], []
@@ -311,7 +326,8 @@ class LocalSearch:
             parameters.append(limit)
             rows = connection.execute(
                 'SELECT d.source_id,d.source_sha256,d.page_number,d.version_kind,d.parser_id,'
-                'd.parser_version,d.review_status,d.relative_path,d.source_pdf_relative_path,d.content '
+                'd.parser_version,d.review_status,d.relative_path,d.source_pdf_relative_path,d.content,'
+                'd.acceptance_event_id '
                 'FROM documents d WHERE ' + ' AND '.join(conditions)
                 + ' ORDER BY d.source_id,d.page_number,d.version_kind LIMIT ?', parameters).fetchall()
         finally:
@@ -326,6 +342,7 @@ class LocalSearch:
                 'review_status': row[6], 'risk': None if row[6] == 'accepted' else 'UNREVIEWED_CANDIDATE',
                 'snippet': snippet(row[9], query), 'relative_path': relative,
                 'source_pdf_relative_path': row[8],
+                'acceptance_event_id': row[10],
                 'obsidian_wikilink': f'[[{vault_relative}|{row[0]} 第 {row[2]} 页 ({row[3]})]]',
                 'obsidian_uri': 'obsidian://open?vault=vault&file=' + quote(vault_relative, safe=''),
             })
@@ -339,6 +356,7 @@ class LocalSearch:
     def status(self):
         connection = self._connect()
         try:
+            self._assert_acceptance_state(connection)
             total = connection.execute('SELECT count(*) FROM documents').fetchone()[0]
             accepted = connection.execute(
                 "SELECT count(*) FROM documents WHERE review_status='accepted'").fetchone()[0]
@@ -354,18 +372,27 @@ class LocalSearch:
         connection = self._connect()
         try:
             meta = {key: json.loads(value) for key, value in connection.execute('SELECT key,value FROM meta')}
-            if set(meta) != {'schema_version', 'created_at', 'includes_review_candidates'} \
+            if set(meta) != {'schema_version', 'created_at', 'includes_review_candidates',
+                             'acceptance_state_sha256'} \
                     or meta['schema_version'] != SCHEMA_VERSION:
                 fail('INDEX_METADATA_INVALID')
             try:
                 created = datetime.fromisoformat(meta['created_at'])
             except (TypeError, ValueError):
                 fail('INDEX_METADATA_INVALID')
-            if created.tzinfo is None or type(meta['includes_review_candidates']) is not bool:
+            if (created.tzinfo is None or type(meta['includes_review_candidates']) is not bool
+                    or not isinstance(meta['acceptance_state_sha256'], str)):
                 fail('INDEX_METADATA_INVALID')
+            try:
+                current_acceptance_state = self.reviews.state_sha256()
+            except ReviewError:
+                fail('INDEX_ACCEPTANCE_STATE_INVALID')
+            if meta['acceptance_state_sha256'] != current_acceptance_state:
+                fail('INDEX_ACCEPTANCE_STATE_CHANGED_REBUILD_REQUIRED')
             rows = connection.execute(
                 'SELECT source_id,source_sha256,relative_path,content_sha256,review_status,'
-                'source_pdf_relative_path,content,version_kind,page_number,parser_id,parser_version '
+                'source_pdf_relative_path,content,version_kind,page_number,parser_id,parser_version,'
+                'acceptance_event_id '
                 'FROM documents'
             ).fetchall()
             fts_count = connection.execute('SELECT count(*) FROM documents_fts').fetchone()[0]
@@ -376,14 +403,17 @@ class LocalSearch:
             connection.close()
         if fts_count != len(rows) or fts_mismatch:
             fail('INDEX_FTS_MISMATCH')
+        active_ids = {event['event_id'] for event in self.reviews.active_snapshots()}
         for (source_id, source_hash, relative, content_hash, review_status, source_relative,
-             stored_content, version, page, parser_id, parser_version) in rows:
+             stored_content, version, page, parser_id, parser_version, acceptance_event_id) in rows:
             if source_id not in records or records[source_id]['sha256'] != source_hash:
                 fail('INDEX_SOURCE_MISMATCH')
             if (source_relative != records[source_id]['stored_relative_path']
                     or review_status not in {'accepted', 'review_required'}
                     or version not in {'accepted', 'basic', 'enhanced'}
                     or (review_status == 'accepted') != (version == 'accepted')
+                    or (version == 'accepted') != bool(acceptance_event_id)
+                    or (acceptance_event_id is not None and acceptance_event_id not in active_ids)
                     or type(page) is not int or page < 1
                     or not parser_id or not parser_version
                     or digest_text(stored_content) != content_hash):
@@ -429,7 +459,7 @@ def cli(argv=None):
         print(json_bytes(result).decode('utf-8'), end=''); return 0
     except SearchError as exc:
         print(json.dumps({'ok': False, 'error': str(exc)})); return 1
-    except (SourceError, EnhancedError):
+    except (SourceError, EnhancedError, ReviewError):
         print(json.dumps({'ok': False, 'error': 'DEPENDENCY_VALIDATION_FAILED'})); return 1
     except (OSError, ValueError, TypeError, KeyError, json.JSONDecodeError, sqlite3.Error):
         print(json.dumps({'ok': False, 'error': 'IO_OR_INDEX_ERROR'})); return 1

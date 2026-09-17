@@ -37,6 +37,7 @@ SYSTEM_NOTES = {
     '00-System/PDF-Parsing-Guide.md',
     '00-System/Enhanced-Parsing-Guide.md',
     '00-System/Local-Retrieval-Guide.md',
+    '00-System/Review-Acceptance-Guide.md',
     '00-System/Claudian-Study-Pilot-Guide.md',
     '00-System/Scalable-Parsing-Architecture.md',
     '00-System/Batch-Parsing-Guide.md',

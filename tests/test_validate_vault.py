@@ -47,6 +47,7 @@ class MetadataTests(unittest.TestCase):
     def test_claudian_policy_and_guide_are_registered_system_notes(self):
         self.assertIn('AGENTS.md', vault.SYSTEM_NOTES)
         self.assertIn('00-System/Claudian-Study-Pilot-Guide.md', vault.SYSTEM_NOTES)
+        self.assertIn('00-System/Review-Acceptance-Guide.md', vault.SYSTEM_NOTES)
 
     def test_all_types_and_both_courses(self):
         for kind in vault.TYPES:
@@ -221,6 +222,7 @@ class IgnoreRuleTests(unittest.TestCase):
             'review-queue/parsing-jobs/job.json',
             'review-queue/parsing-checkpoints/checkpoint.json', 'models/cache/model.bin',
             'review-queue/enhanced-experiments/run/output.json',
+            'review-queue/acceptance-events/acc-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json',
             'indexes/local-search.sqlite3',
             'vault/90-Parsed-Sources/src-abcdef123456/index.md',
             'sources-original/math1/book.PDF', 'sources-original/408/slides.ppt',
@@ -240,10 +242,12 @@ class IgnoreRuleTests(unittest.TestCase):
             'scripts/enhanced_parser.py', 'scripts/enhanced_worker.py',
             'vault/00-System/Enhanced-Parsing-Guide.md',
             'vault/00-System/Local-Retrieval-Guide.md', 'scripts/local_search.py',
+            'vault/00-System/Review-Acceptance-Guide.md', 'scripts/review_manager.py',
             'indexes/.gitkeep',
             'config/providers.example.yaml', 'config/sources-original.baseline.example.json',
             'config/source-manifests/.gitkeep', 'import-inbox/.gitkeep',
             'review-queue/import-plans/.gitkeep', 'review-queue/parsing-routing/.gitkeep',
+            'review-queue/acceptance-events/.gitkeep',
             'vault/90-Parsed-Sources/.gitkeep',
             'vault/90-Parsed-Sources/Parsed-Sources-MOC.md',
         ], False)

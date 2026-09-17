@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Phase 0 至本地公式增强和可追溯页级检索已提交。MinerU 4.0.0 已在项目隔离环境中跑通合成页和一个授权真实异常页；结果仍是待审核候选。当前 Phase 3A 建立 Claudian 2.2.7 + Codex 的只读学习问答试点，插件只允许经 Obsidian 官方社区插件 UI 安装，问答不得自动接受候选或修改资料。
+Phase 0 至 Claudian 只读学习问答试点已提交。MinerU 4.0.0 已在项目隔离环境中跑通合成页和一个授权真实异常页；结果仍是待审核候选。当前 Phase 3B 建立可追溯的人工接受与撤销门禁，不自动接受任何页面。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
@@ -15,6 +15,8 @@ Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定
 公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-System/Enhanced-Parsing-Guide.md`。
 
 页级检索使用 Python 自带 SQLite FTS5，不需要大模型或网络服务。默认只查 accepted 页面；显式预览参数才能查看未审核基础/增强候选。索引位于被忽略的 `indexes/`，可从来源和派生文件重建。详见 `vault/00-System/Local-Retrieval-Guide.md`。
+
+人工接受使用不可覆盖快照和追加式审核事件。接受与撤销均默认 dry-run，只有显式 `--apply` 才写入；撤销保留历史快照。正式索引会核验来源、候选、快照和事件，不能仅靠修改 `review_status` 绕过。详见 `vault/00-System/Review-Acceptance-Guide.md`。
 
 Claudian 试点规则位于 `vault/AGENTS.md`，使用说明见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。Claudian 的 Codex Provider 必须显式设置为 read-only；提供器请求会发送到 OpenAI，禁止把原始资料或未审核全文作为附件发送。
 
@@ -186,6 +188,18 @@ py -3.12 -B scripts/validate_claudian_pilot.py run-pilot
 ```
 
 验证脚本不调用模型，只确认正式问答与候选预览的边界。UI 首次试问、预期回答、隐私边界和故障停止条件见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。
+
+## Phase 3B 人工审核与接受门禁
+
+```powershell
+py -3.12 -B scripts/review_manager.py inspect --source-id <source_id> --page <PDF物理页码>
+py -3.12 -B scripts/review_manager.py accept --source-id <source_id> --page <页码> --candidate <候选相对路径> --reviewer "<审核人>" --notes "<审核说明>"
+py -3.12 -B scripts/review_manager.py revoke --acceptance-id <acc-...> --reviewer "<审核人>" --reason "<原因>"
+py -3.12 -B scripts/review_manager.py verify
+py -3.12 -B scripts/review_manager.py status
+```
+
+`accept` 与 `revoke` 不带 `--apply` 时只预演。当前阶段不接受真实页面；后续只有人工逐页核对并明确执行后，内容才可能进入正式索引。
 
 ## 后续路线（每阶段开始前确认）
 
