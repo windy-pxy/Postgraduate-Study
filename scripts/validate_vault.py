@@ -37,6 +37,7 @@ SYSTEM_NOTES = {
     '00-System/PDF-Parsing-Guide.md',
     '00-System/Enhanced-Parsing-Guide.md',
     '00-System/Local-Retrieval-Guide.md',
+    '00-System/Claudian-Study-Pilot-Guide.md',
     '00-System/Scalable-Parsing-Architecture.md',
     '00-System/Batch-Parsing-Guide.md',
     '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
@@ -45,6 +46,7 @@ SYSTEM_NOTES = {
     '07-Weakness-Analysis/Weakness-MOC.md', '08-Study-Records/Study-Records-MOC.md',
     '80-Attachments/Attachments-MOC.md', '90-Parsed-Sources/Parsed-Sources-MOC.md',
     '99-Templates/Templates-MOC.md',
+    'AGENTS.md',
     *{f'01-Math1/{s}/{s}-MOC.md' for s in SUBJECTS['math1']},
     *{f'02-408/{s}/{s}-MOC.md' for s in SUBJECTS['408']},
 }

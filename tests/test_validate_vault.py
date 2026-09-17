@@ -44,6 +44,10 @@ class MetadataTests(unittest.TestCase):
     def test_enhanced_parsing_guide_is_registered_system_note(self):
         self.assertIn('00-System/Enhanced-Parsing-Guide.md', vault.SYSTEM_NOTES)
 
+    def test_claudian_policy_and_guide_are_registered_system_notes(self):
+        self.assertIn('AGENTS.md', vault.SYSTEM_NOTES)
+        self.assertIn('00-System/Claudian-Study-Pilot-Guide.md', vault.SYSTEM_NOTES)
+
     def test_all_types_and_both_courses(self):
         for kind in vault.TYPES:
             for course, subject in [('math1', 'Calculus'), ('408', 'Operating-System')]:
@@ -194,6 +198,13 @@ class IgnoreRuleTests(unittest.TestCase):
             'vault/nested/deeper/.obsidian/plugins/plugin/main.js',
             'sources-original/math1/.obsidian/.gitkeep',
             'sources-original/408/nested/.obsidian/app.json',
+        ], True)
+
+    def test_all_claudian_runtime_paths_ignored(self):
+        self.assert_ignored([
+            'vault/.claudian/claudian-settings.json',
+            'vault/.claudian/sessions/session.jsonl',
+            'nested/.claudian/runtime.json',
         ], True)
 
     def test_sensitive_and_runtime_files_ignored(self):

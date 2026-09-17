@@ -1,6 +1,6 @@
 	# 数学一 + 408 学习首页
 
-Phase 1 至 Phase 2D-0 已完成；当前已有可运行的 MinerU 单页本地增强候选流程。基础结果保持只读，增强候选仍需人工审核；模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
+Phase 1 至本地增强与检索基础已完成；当前正在进行 Claudian + Codex 只读学习问答试点。基础结果保持只读，增强候选仍需人工审核；模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
 
 ## 学习区域
 
@@ -26,6 +26,7 @@ Phase 1 至 Phase 2D-0 已完成；当前已有可运行的 MinerU 单页本地�
 - [[00-System/PDF-Parsing-Guide|本地 PDF 解析与质量审核指南]]
 - [[00-System/Enhanced-Parsing-Guide|本地公式增强解析指南]]
 - [[00-System/Local-Retrieval-Guide|本地页级检索指南]]
+- [[00-System/Claudian-Study-Pilot-Guide|Claudian 只读学习问答试点]]
 - [[00-System/Scalable-Parsing-Architecture|可扩展解析架构]]
 - [[00-System/Batch-Parsing-Guide|大规模资料批次规划指南]]
 
@@ -39,4 +40,4 @@ Phase 1 至 Phase 2D-0 已完成；当前已有可运行的 MinerU 单页本地�
 - `archive`：经明确确认后归档的非原始文件。
 - `scripts`、`tests`、`config`、`prompts`、`logs`：工具、测试、配置样例、提示词与日志。
 
-本地增强模型只在项目隔离环境中运行，不调用云端 API。系统不安装 Obsidian 插件，也不填入虚构知识、真题或成绩。
+本地增强模型只在项目隔离环境中运行，不调用云端 API。Claudian 仅通过 Obsidian 官方社区插件渠道接入，并必须使用 Codex read-only 模式；系统不填入虚构知识、真题或成绩。

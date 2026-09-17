@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Phase 0 至 Phase 2D-0 已提交。当前增强阶段已在项目隔离环境中安装 MinerU 4.0.0，并跑通合成页和一个已授权真实异常页的单页本地推理。增强结果仍是待审核候选，不自动进入检索接受区或知识笔记。Docling、云端 OCR/API、Claudian、Docker 和系统级依赖仍未安装或调用。
+Phase 0 至本地公式增强和可追溯页级检索已提交。MinerU 4.0.0 已在项目隔离环境中跑通合成页和一个授权真实异常页；结果仍是待审核候选。当前 Phase 3A 建立 Claudian 2.2.7 + Codex 的只读学习问答试点，插件只允许经 Obsidian 官方社区插件 UI 安装，问答不得自动接受候选或修改资料。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
@@ -15,6 +15,8 @@ Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定
 公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-System/Enhanced-Parsing-Guide.md`。
 
 页级检索使用 Python 自带 SQLite FTS5，不需要大模型或网络服务。默认只查 accepted 页面；显式预览参数才能查看未审核基础/增强候选。索引位于被忽略的 `indexes/`，可从来源和派生文件重建。详见 `vault/00-System/Local-Retrieval-Guide.md`。
+
+Claudian 试点规则位于 `vault/AGENTS.md`，使用说明见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。Claudian 的 Codex Provider 必须显式设置为 read-only；提供器请求会发送到 OpenAI，禁止把原始资料或未审核全文作为附件发送。
 
 ## 目录用途
 
@@ -28,7 +30,7 @@ Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定
 | `vault/02-408/Computer-Organization` | 计算机组成原理 |
 | `vault/02-408/Operating-System` | 操作系统 |
 | `vault/02-408/Computer-Network` | 计算机网络 |
-| `vault/03-Knowledge-Notes` | 跨章节知识笔记 |
+| `vault/03-Knowledge-Notes` | 跨章节知识笔记；`AI-Drafts` 仅存经明确请求生成的草稿 |
 | `vault/04-Mistakes` | 错题记录 |
 | `vault/05-Past-Papers` | 历年真题学习笔记 |
 | `vault/06-Stage-Tests` | 阶段测评记录 |
@@ -58,7 +60,7 @@ Git 只保存可复用的系统代码、测试、配置样例、系统文档、�
 
 ## 使用与验证
 
-在 Obsidian 中选择“打开文件夹作为仓库”，打开 `D:\Postgraduate-Study\vault`。不需要安装插件。无需把整个项目作为 Obsidian 仓库。
+在 Obsidian 中选择“打开文件夹作为仓库”，打开 `D:\Postgraduate-Study\vault`。Phase 3A 仅安装官方社区插件 Claudian；无需把整个项目作为 Obsidian 仓库。
 
 从 `00-System/Home.md` 开始，先读 `Metadata-Schema.md` 和 `Linking-Rules.md`。在 `99-Templates/Templates-MOC.md` 选择模板，手动复制到相应正式笔记目录；设置唯一 id，按实际情况填写，清除占位符后运行验证。导航页和模板不代表实际学习进度。详细检查范围和错误说明见 `00-System/Validation-Guide.md`。
 
@@ -71,6 +73,7 @@ py -3.12 -B scripts/source_manager.py verify
 py -3.12 -B scripts/pdf_parser.py --help
 py -3.12 -B scripts/enhanced_parser.py model-status
 py -3.12 -B scripts/local_search.py --help
+py -3.12 -B scripts/validate_claudian_pilot.py run-pilot
 py -3.12 -B -m unittest discover -s tests -v
 git status --short
 git diff --stat
@@ -171,6 +174,19 @@ py -3.12 -B scripts/local_search.py verify
 
 当前没有人工接受页面时，默认查询明确返回“暂无已审核资料”。预览候选需要建库与查询两处均显式指定，结果标明 `UNREVIEWED_CANDIDATE`。
 
+## Phase 3A Claudian 只读学习问答
+
+当前试点使用本机 Codex CLI 的现有 ChatGPT 登录，不在仓库中保存 API Key。安装必须通过 Obsidian“设置 → 社区插件 → 浏览 → Claudian → 安装 → 启用”，并在 Claudian 的 Codex 设置中选择 Native Windows 和 read-only。默认的 workspace-write 不符合本项目要求；不得启用 YOLO、MCP、子代理、Collab 或其他 Provider。
+
+项目侧验证命令：
+
+```powershell
+py -3.12 -B scripts/validate_claudian_pilot.py check-policy
+py -3.12 -B scripts/validate_claudian_pilot.py run-pilot
+```
+
+验证脚本不调用模型，只确认正式问答与候选预览的边界。UI 首次试问、预期回答、隐私边界和故障停止条件见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。
+
 ## 后续路线（每阶段开始前确认）
 
 1. Phase 1（本阶段）：Obsidian 学习数据结构、笔记模板、双链规范与只读验证；不导入资料。
@@ -182,7 +198,7 @@ py -3.12 -B scripts/local_search.py verify
 
 ## 安全注意事项
 
-所有层级的 `.obsidian/` 目录及其内容均保留在本地，不进入 Git，不因忽略规则而删除或移动。
+所有层级的 `.obsidian/` 和 `.claudian/` 目录及其内容均保留在本地，不进入 Git，不因忽略规则而删除或移动。前者保存 Obsidian 插件与设备配置，后者保存 Claudian 的 vault 设置、会话和运行状态。
 
 Phase 1 的路径/大小/时间基线已在原件区为空且旧验证通过时升级。当前使用 SHA-256 判断内容一致性，大小和时间不能替代它。SHA-256 不是数字签名，不抵御有权限同时篡改原件、清单和基线的人，不能宣称为强防篡改机制；保留可信 Git 历史和独立备份仍有必要。Windows ACL 尚未启用。
 

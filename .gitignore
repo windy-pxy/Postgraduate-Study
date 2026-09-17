@@ -50,6 +50,10 @@ api_cache/
 **/.obsidian/
 **/.obsidian/**
 
+# Claudian per-vault settings, sessions, transcripts, and runtime state stay local.
+**/.claudian/
+**/.claudian/**
+
 # Phase 2A: synthetic test sandboxes and operation lock stay local.
 /tests/.runtime/
 /config/.source-manager.lock
@@ -73,6 +77,11 @@ api_cache/
 !/review-queue/parsing-checkpoints/.gitkeep
 /review-queue/enhanced-experiments/*
 !/review-queue/enhanced-experiments/.gitkeep
+# Page-level review aids and corrected candidates contain parsed content; keep local.
+/review-queue/*.md
+
+# WorkBuddy assistant local state stays on this machine.
+/.workbuddy-ai/
 
 # Real derived outputs remain local; keep only the system index and root anchor.
 /vault/90-Parsed-Sources/*
