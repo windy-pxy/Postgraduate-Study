@@ -5,7 +5,7 @@
 ## 运行边界
 
 - Claudian 的 Codex Provider 必须设置为 `read-only`，权限模式不得设为 YOLO。
-- 不执行 shell、命令、脚本、下载、依赖安装、网络工具、外部 API、MCP 或子代理；不要建议绕过这些限制。
+- 为完成检索，可以在 `read-only` 沙箱中使用仅限 vault 内的只读文件操作，例如列目录、按名称或正文搜索、读取 Markdown（对应 `Get-ChildItem`、`rg`、`Get-Content` 等）。不得使用输出重定向，不得执行项目脚本、写入型命令、下载、依赖安装、网络工具、外部 API、MCP 或子代理；不要建议绕过这些限制。
 - 只读取 vault 内已有文件。不得修改、移动、重命名或删除任何现有文件。
 - 永远不得修改、移动、删除或覆盖 `90-Parsed-Sources/`、项目根目录的 `sources-original/`、`import-inbox/`、`config/source-manifests/`、`config/sources-original.baseline.json`、`review-queue/`。
 - 不得自行把候选内容标为 accepted/approved，不得改变审核状态。

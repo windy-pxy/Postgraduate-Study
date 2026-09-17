@@ -24,7 +24,8 @@ REQUIRED_POLICY_TEXT = (
     'source_id', 'parser_version', '90-Parsed-Sources/', 'sources-original/',
     'import-inbox/', 'config/source-manifests/', 'config/sources-original.baseline.json',
     'review-queue/', '生成草稿', '03-Knowledge-Notes/AI-Drafts/',
-    '不执行 shell', '不得自行把候选内容标为 accepted/approved',
+    '只读文件操作', '不得执行项目脚本', '写入型命令',
+    '不得自行把候选内容标为 accepted/approved',
 )
 
 

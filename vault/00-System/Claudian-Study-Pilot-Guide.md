@@ -17,7 +17,7 @@ Claudian 会把用户输入、明确附加的文件和工具输出发送给所�
 2. 搜索 **Claudian**，确认插件 ID 为 `realclaudian`，安装并启用。
 3. 在 Claudian 设置中启用 **Codex** Provider，Windows 安装方式选择 **Native Windows**。
 4. CLI 路径先留空让插件自动发现；只有自动发现失败时，才在 UI 中选择现有 `codex.exe`。不要修改全局 PATH。
-5. 将 **Codex safe mode** 明确设为 **read-only**。不要选择 workspace-write 或 YOLO。
+5. 将 **Codex safe mode** 明确设为 **read-only**，并确认聊天栏权限切换显示 **Safe**。不要选择 workspace-write 或 YOLO。
 6. 保持 MCP、子代理、Collab 和其他 Provider 关闭。本试点不填写 API Key，也不设置自定义环境变量。
 
 Claudian 的每 vault 设置、会话和运行记录保存在 `.claudian/`，Obsidian 插件文件与设备配置保存在 `.obsidian/`；两者都只留本机并被 Git 忽略。不要把会话记录当作正式笔记或审核证据。
@@ -34,7 +34,7 @@ Claudian 2.2.7 的默认 Codex safe mode 是 workspace-write，因此每次重�
    预期每项显示 `review_required`、source_id、页码、parser_id、parser_version，并提供 Obsidian 双链或 vault 相对路径。
 3. 点击结果中的 Obsidian 双链，确认能定位到对应基础页或增强候选。基础与增强必须是两个独立结果。
 
-若 Claudian 请求写入、执行命令、提升权限、启用网络工具，立即拒绝并结束会话。若正式问答引用了候选、遗漏审核状态或合并同页版本，则试点不通过，不继续使用该会话。
+候选预览需要 Codex 在 `read-only` 沙箱中列目录、搜索并读取 vault 内的 Markdown；允许的只读操作包括 `Get-ChildItem`、`rg`、`Get-Content` 等。不得运行项目脚本、使用输出重定向或执行任何写入、下载、安装、联网命令。若 Claudian 请求写入、提升权限或启用网络工具，立即拒绝并结束会话。若正式问答引用了候选、遗漏审核状态或合并同页版本，则试点不通过，不继续使用该会话。
 
 ## 项目侧只读验证
 

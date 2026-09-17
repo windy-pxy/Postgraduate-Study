@@ -19,6 +19,12 @@ class ClaudianPilotTests(unittest.TestCase):
         self.assertTrue(result['ok'])
         self.assertEqual(result['missing_requirement_count'], 0)
 
+        policy_text = (ROOT / pilot.POLICY_RELATIVE).read_text(encoding='utf-8')
+        self.assertIn('Get-Content', policy_text)
+        self.assertIn('rg', policy_text)
+        self.assertIn('不得执行项目脚本', policy_text)
+        self.assertNotIn('不执行 shell、命令、脚本', policy_text)
+
     def test_incomplete_policy_fails_without_echoing_content(self):
         runtime = ROOT / 'tests/.runtime'
         runtime.mkdir(exist_ok=True)

@@ -176,7 +176,7 @@ py -3.12 -B scripts/local_search.py verify
 
 ## Phase 3A Claudian 只读学习问答
 
-当前试点使用本机 Codex CLI 的现有 ChatGPT 登录，不在仓库中保存 API Key。安装必须通过 Obsidian“设置 → 社区插件 → 浏览 → Claudian → 安装 → 启用”，并在 Claudian 的 Codex 设置中选择 Native Windows 和 read-only。默认的 workspace-write 不符合本项目要求；不得启用 YOLO、MCP、子代理、Collab 或其他 Provider。
+当前试点使用本机 Codex CLI 的现有 ChatGPT 登录，不在仓库中保存 API Key。安装必须通过 Obsidian“设置 → 社区插件 → 浏览 → Claudian → 安装 → 启用”，并在 Claudian 的 Codex 设置中选择 Native Windows 和 read-only，聊天栏权限必须显示 Safe。默认的 workspace-write 不符合本项目要求；不得启用 YOLO、MCP、子代理、Collab 或其他 Provider。候选预览允许在 read-only 沙箱内列目录、搜索和读取 vault Markdown，但禁止运行项目脚本、写入、下载、安装或联网命令。
 
 项目侧验证命令：
 
