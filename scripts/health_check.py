@@ -29,6 +29,8 @@ FILES = ('AGENTS.md', 'README.md', '.gitignore', '.env.example',
 FILES += ('scripts/parsing_architecture.py', 'tests/test_parsing_architecture.py',
           'config/parsing-profiles.yaml', 'config/resource-limits.yaml',
           'vault/00-System/Scalable-Parsing-Architecture.md',
+          'vault/00-System/Batch-Parsing-Guide.md',
+          'tests/test_batch_planning.py',
           'tests/fixtures/parsing-evaluation/evaluation-manifest.json',
           'tests/fixtures/parsing-evaluation/comparison-report-template.md')
 

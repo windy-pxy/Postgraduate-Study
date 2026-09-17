@@ -1,4 +1,4 @@
-schema_version: 1
+schema_version: 2
 hardware_profile: windows_16gb_rtx4060_laptop_8gb
 project_root_constraint: D:/Postgraduate-Study
 model_cache_relative_path: models/cache
@@ -24,3 +24,16 @@ execution:
   preserve_previous_results: true
   require_explicit_acceptance_for_retrieval: true
   require_explicit_authorization_for_cloud: true
+
+planning:
+  default_batch_pages: 25
+  require_dry_run_by_default: true
+  forbid_unconfirmed_inbox: true
+  heavy_jobs_exclusive: true
+  estimated_basic_bytes_per_page: 262144
+  estimated_enhanced_bytes_per_page: 2097152
+  estimated_basic_peak_memory_bytes: 1073741824
+  estimated_enhanced_peak_memory_bytes: 8589934592
+  estimated_enhanced_peak_vram_bytes: 6442450944
+  hardware_memory_bytes: 17179869184
+  hardware_vram_bytes: 8589934592

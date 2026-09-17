@@ -1,6 +1,6 @@
 	# 数学一 + 408 学习首页
 
-Phase 1、Phase 2A 和 Phase 2B 框架已完成；当前 Phase 2C-Architecture 建立页面质量路由、状态机和未来增强解析器接口。已有解析产物保持只读，模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
+Phase 1、Phase 2A、Phase 2B 和 Phase 2C 架构已完成；当前 Phase 2D-0 增加只做计划的批次统计、资源估算与轻量队列。已有解析产物保持只读，模板与导航不代表已学习进度，正式笔记需填入真实记录后验证。
 
 ## 学习区域
 
@@ -25,6 +25,7 @@ Phase 1、Phase 2A 和 Phase 2B 框架已完成；当前 Phase 2C-Architecture �
 - [[00-System/Source-Import-Guide|安全导入与 SHA-256 校验指南]]
 - [[00-System/PDF-Parsing-Guide|本地 PDF 解析与质量审核指南]]
 - [[00-System/Scalable-Parsing-Architecture|可扩展解析架构]]
+- [[00-System/Batch-Parsing-Guide|大规模资料批次规划指南]]
 
 ## 仓库外部区域
 
@@ -36,4 +37,4 @@ Phase 1、Phase 2A 和 Phase 2B 框架已完成；当前 Phase 2C-Architecture �
 - `archive`：经明确确认后归档的非原始文件。
 - `scripts`、`tests`、`config`、`prompts`、`logs`：工具、测试、配置样例、提示词与日志。
 
-本阶段不安装插件或增强模型、不调用 API、不重解析已有 PDF，也不填入虚构知识、真题或成绩。
+本阶段不安装插件或增强模型、不调用 API、不解析或重解析已有 PDF，也不填入虚构知识、真题或成绩。

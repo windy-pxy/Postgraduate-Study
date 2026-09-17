@@ -1,13 +1,15 @@
-"""Phase 2C architecture: parser contracts, quality routing and traceable states.
+"""Phase 2C/2D-0 architecture: quality routing and dry-run batch planning.
 
 Only the PyMuPDF adapter is implemented. Enhanced/cloud adapters are inert
-interfaces. The CLI reads existing Phase 2B outputs and can save one routing
-plan; it never reparses or mutates originals or existing parsed output.
+interfaces. The CLI reads registered metadata and existing Phase 2B outputs.
+It can save plans and queue metadata, but never parses, reparses, or mutates
+originals and existing parsed output.
 """
 from abc import ABC, abstractmethod
 import argparse
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
+import hashlib
 import importlib.util
 import json
 from pathlib import Path, PurePosixPath
@@ -38,6 +40,8 @@ PROJECT_ROOT = Path(__file__).absolute().parent.parent
 PROFILES_FILE = 'config/parsing-profiles.yaml'
 LIMITS_FILE = 'config/resource-limits.yaml'
 ROUTING_QUEUE = 'review-queue/parsing-routing'
+JOB_QUEUE = 'review-queue/parsing-jobs'
+CHECKPOINT_QUEUE = 'review-queue/parsing-checkpoints'
 PARSER_IDS = {
     'basic_pymupdf', 'enhanced_mineru_pipeline',
     'enhanced_docling_formula', 'optional_mathpix_formula_crop',
@@ -45,6 +49,19 @@ PARSER_IDS = {
 ROUTES = {
     'basic_accepted_candidate', 'review_required', 'enhanced_parse_queued',
     'manual_or_optional_cloud_review',
+}
+BATCH_CATEGORIES = {
+    'basic', 'enhanced', 'manual_review', 'resource_deferred',
+    'already_queued', 'unsupported'
+}
+VALID_COURSES = {'math1', '408'}
+VALID_SUBJECTS = {
+    'calculus', 'linear-algebra', 'probability', 'data-structure',
+    'computer-organization', 'operating-system', 'computer-network',
+}
+VALID_SOURCE_TYPES = {
+    'textbook', 'wangdao', 'zhangyu', 'teacher-ppt', 'past-paper',
+    'exercise', 'notes', 'other',
 }
 METRIC_FIELDS = {
     'character_count', 'replacement_char_count', 'replacement_char_rate',
@@ -183,9 +200,9 @@ def validate_profiles(value):
 def validate_limits(value, root):
     if set(value) != {'schema_version', 'hardware_profile', 'project_root_constraint',
                      'model_cache_relative_path', 'queue_relative_path',
-                     'checkpoint_relative_path', 'limits', 'execution'}:
+                     'checkpoint_relative_path', 'limits', 'execution', 'planning'}:
         fail('LIMIT_SCHEMA_INVALID')
-    if value['schema_version'] != 1 or Path(value['project_root_constraint']) != root:
+    if value['schema_version'] != 2 or Path(value['project_root_constraint']) != root:
         fail('LIMIT_ROOT_INVALID')
     for key in ('model_cache_relative_path', 'queue_relative_path', 'checkpoint_relative_path'):
         if not safe_relative(value[key]):
@@ -214,6 +231,28 @@ def validate_limits(value, root):
     if set(execution) != required_execution or execution['retry_scope'] != 'single_page_only':
         fail('LIMIT_SCHEMA_INVALID')
     if any(execution[k] is not True for k in required_execution - {'retry_scope'}):
+        fail('LIMIT_SCHEMA_INVALID')
+    required_planning = {
+        'default_batch_pages', 'require_dry_run_by_default',
+        'forbid_unconfirmed_inbox', 'heavy_jobs_exclusive',
+        'estimated_basic_bytes_per_page', 'estimated_enhanced_bytes_per_page',
+        'estimated_basic_peak_memory_bytes', 'estimated_enhanced_peak_memory_bytes',
+        'estimated_enhanced_peak_vram_bytes', 'hardware_memory_bytes',
+        'hardware_vram_bytes',
+    }
+    planning = value['planning']
+    if not isinstance(planning, dict) or set(planning) != required_planning:
+        fail('LIMIT_SCHEMA_INVALID')
+    boolean_fields = {'require_dry_run_by_default', 'forbid_unconfirmed_inbox',
+                      'heavy_jobs_exclusive'}
+    if any(planning[key] is not True for key in boolean_fields):
+        fail('LIMIT_SCHEMA_INVALID')
+    for key in required_planning - boolean_fields:
+        if type(planning[key]) is not int or planning[key] <= 0:
+            fail('LIMIT_SCHEMA_INVALID')
+    if (planning['default_batch_pages'] != value['limits']['max_pages_per_run']
+            or planning['hardware_memory_bytes'] < value['limits']['max_memory_bytes']
+            or planning['hardware_vram_bytes'] < value['limits']['max_vram_bytes']):
         fail('LIMIT_SCHEMA_INVALID')
     return value
 
@@ -633,12 +672,15 @@ class RoutingPlanner:
             # Phase 2B's explicit formula flag is authoritative routing evidence.
             metrics['formula_candidate'] = bool(entry['needs_formula_review'])
             score, route, reasons = score_and_route(metrics, profile)
-            initial_state = 'encoding_degraded' if metrics['font_encoding_warning'] else 'quality_scored'
+            initial_state = ('encoding_degraded'
+                             if metrics['font_encoding_warning']
+                             and route != 'manual_or_optional_cloud_review'
+                             else 'quality_scored')
             next_state = {
                 'basic_accepted_candidate': 'review_required',
                 'review_required': 'review_required',
                 'enhanced_parse_queued': 'enhanced_queued',
-                'manual_or_optional_cloud_review': 'manual_correction_pending',
+                'manual_or_optional_cloud_review': 'blocked',
             }[route]
             transition_reason = ','.join(reasons) if reasons else 'basic_quality_normal_candidate'
             decisions.append({
@@ -701,8 +743,363 @@ class RoutingPlanner:
                 'profile': plan['profile'], 'route_counts': counts}
 
 
+def stable_plan_id(prefix, value):
+    encoded = json.dumps(value, ensure_ascii=False, sort_keys=True,
+                         separators=(',', ':')).encode('utf-8')
+    return prefix + '-' + hashlib.sha256(encoded).hexdigest()[:16]
+
+
+def chunks(values, size):
+    return [values[index:index + size] for index in range(0, len(values), size)]
+
+
+class BatchPlanner(RoutingPlanner):
+    """Plan metadata-only batches. No method invokes a parser."""
+
+    def _optional_json(self, relative, limit=8 * 1024 * 1024):
+        path = self.manager.path(relative)
+        if not path.exists():
+            return None
+        return self.manager.load_json(relative, limit)
+
+    def _routing_plan(self, source_id):
+        value = self._optional_json(f'{ROUTING_QUEUE}/{source_id}.json')
+        return validate_routing_plan(value) if value is not None else None
+
+    def _default_profile(self, record):
+        if record['course'] == 'math1':
+            return 'math1_formula_dense'
+        return 'cs408_general'
+
+    def _validate_filters(self, course=None, subject=None, source_type=None,
+                          profile=None, source_ids=None):
+        if course is not None and course not in VALID_COURSES:
+            fail('FILTER_INVALID')
+        if subject is not None and subject not in VALID_SUBJECTS:
+            fail('FILTER_INVALID')
+        if source_type is not None and source_type not in VALID_SOURCE_TYPES:
+            fail('FILTER_INVALID')
+        if profile is not None and profile not in self.profiles['profiles']:
+            fail('PROFILE_NOT_FOUND')
+        for source_id in source_ids or []:
+            if not isinstance(source_id, str) or not SID.fullmatch(source_id):
+                fail('SOURCE_ID_INVALID')
+
+    def _selected(self, course=None, subject=None, source_type=None,
+                  profile=None, source_ids=None):
+        self._validate_filters(course, subject, source_type, profile, source_ids)
+        integrity = self.manager.verify()
+        if not integrity['ok']:
+            fail('SOURCE_INTEGRITY_FAILED')
+        records, issues = self.manager.manifests()
+        if issues:
+            fail('SOURCE_MANIFEST_INVALID')
+        requested = set(source_ids or [])
+        if requested - set(records):
+            fail('SOURCE_NOT_REGISTERED')
+        selected = []
+        for source_id in sorted(records):
+            record = records[source_id]
+            if requested and source_id not in requested:
+                continue
+            if course is not None and record['course'] != course:
+                continue
+            if subject is not None and record['subject'] != subject:
+                continue
+            if source_type is not None and record['source_type'] != source_type:
+                continue
+            routing = self._routing_plan(source_id)
+            if routing:
+                effective_profile = routing['profile']
+            elif profile is not None:
+                candidate = self.profiles['profiles'][profile]
+                if record['course'] != candidate['course'] or record['subject'] not in candidate['subjects']:
+                    continue
+                effective_profile = profile
+            else:
+                effective_profile = self._default_profile(record)
+            if profile is not None and effective_profile != profile:
+                continue
+            selected.append((record, routing, effective_profile))
+        return selected
+
+    def source_status(self, **filters):
+        selected = self._selected(**filters)
+        sources = []
+        for record, routing, profile in selected:
+            counts = {route: 0 for route in sorted(ROUTES)}
+            if routing:
+                for decision in routing['decisions']:
+                    counts[decision['route']] += 1
+            sources.append({
+                'source_id': record['source_id'], 'course': record['course'],
+                'subject': record['subject'], 'source_type': record['source_type'],
+                'file_type': record['file_type'], 'size_bytes': record['size_bytes'],
+                'parser_status': record['parser_status'], 'page_count': record['page_count'],
+                'parsing_profile': profile, 'routing_plan_present': routing is not None,
+                'route_counts': counts,
+            })
+        return {'ok': True, 'read_only': True, 'source_count': len(sources),
+                'sources': sources, 'unconfirmed_inbox_excluded': True}
+
+    def _queue_documents(self):
+        values = []
+        for relative in self.manager.walk(JOB_QUEUE):
+            if relative == JOB_QUEUE + '/.gitkeep':
+                continue
+            if PurePosixPath(relative).parent.as_posix() != JOB_QUEUE or not relative.endswith('.json'):
+                fail('QUEUE_FILE_INVALID')
+            value = self.manager.load_json(relative, 8 * 1024 * 1024)
+            if value.get('document_type') not in {'batch_plan', 'single_page_retry'}:
+                fail('QUEUE_FILE_INVALID')
+            values.append((relative, value))
+        return values
+
+    def queue_status(self):
+        by_type = {'batch_plan': 0, 'single_page_retry': 0}
+        by_status = {}
+        for _, value in self._queue_documents():
+            by_type[value['document_type']] += 1
+            status = value.get('status', 'unknown')
+            by_status[status] = by_status.get(status, 0) + 1
+        checkpoints = []
+        for relative in self.manager.walk(CHECKPOINT_QUEUE):
+            if relative != CHECKPOINT_QUEUE + '/.gitkeep':
+                checkpoints.append(relative)
+        return {'ok': True, 'read_only': True, 'queue_documents': sum(by_type.values()),
+                'by_type': by_type, 'by_status': dict(sorted(by_status.items())),
+                'checkpoint_files': len(checkpoints), 'max_concurrent_jobs': 1,
+                'heavy_jobs_exclusive': True}
+
+    def _retry_count(self):
+        return sum(value.get('document_type') == 'single_page_retry'
+                   for _, value in self._queue_documents())
+
+    def _queued_task_keys(self):
+        keys = set()
+        for _, value in self._queue_documents():
+            if value.get('status') not in {'planned', 'queued', 'running'}:
+                continue
+            if value['document_type'] == 'single_page_retry':
+                keys.add((value.get('source_id'), value.get('page_number'), 'enhanced'))
+                continue
+            for batch in value.get('batches', []):
+                category = batch.get('batch_type')
+                for task in batch.get('tasks', []):
+                    keys.add((task.get('source_id'), task.get('page_number'), category))
+        return keys
+
+    def _resource_estimate(self, selected, categories):
+        planning = self.limits['planning']
+        basic_pages = sum(1 for item in categories['basic']
+                          if item.get('page_number') is not None
+                          and item.get('requires_basic_parse'))
+        unknown_basic_bytes = sum(
+            item['size_bytes'] * 3 // 2 for item in categories['basic']
+            if item.get('page_number') is None and item.get('requires_basic_parse'))
+        enhanced_pages = sum(1 for item in categories['enhanced']
+                             if item.get('page_number') is not None)
+        estimated_disk = (basic_pages * planning['estimated_basic_bytes_per_page']
+                          + unknown_basic_bytes
+                          + enhanced_pages * planning['estimated_enhanced_bytes_per_page'])
+        basic_tasks = sum(1 for item in categories['basic'] if item['requires_basic_parse'])
+        peak_memory = 0
+        peak_vram = 0
+        if basic_tasks:
+            peak_memory = planning['estimated_basic_peak_memory_bytes']
+        if enhanced_pages:
+            peak_memory = max(peak_memory, planning['estimated_enhanced_peak_memory_bytes'])
+            peak_vram = planning['estimated_enhanced_peak_vram_bytes']
+        known_pages = sum(record['page_count'] or 0 for record, _, _ in selected)
+        return {
+            'file_count': len(selected), 'known_page_count': known_pages,
+            'unknown_page_count_files': sum(record['page_count'] is None
+                                            for record, _, _ in selected),
+            'basic_parse_task_count': basic_tasks,
+            'enhanced_parse_task_count': enhanced_pages,
+            'single_page_retry_task_count': self._retry_count(),
+            'manual_review_page_count': len(categories['manual_review']),
+            'resource_deferred_count': len(categories['resource_deferred']),
+            'already_queued_count': len(categories['already_queued']),
+            'unsupported_count': len(categories['unsupported']),
+            'estimated_disk_increment_bytes': estimated_disk,
+            'estimated_peak_memory_bytes': peak_memory,
+            'estimated_peak_vram_bytes': peak_vram,
+            'max_concurrent_jobs': self.limits['limits']['max_concurrent_jobs'],
+            'exceeds_configured_memory_budget': peak_memory > self.limits['limits']['max_memory_bytes'],
+            'exceeds_configured_vram_budget': peak_vram > self.limits['limits']['max_vram_bytes'],
+            'exceeds_16gb_physical_memory': peak_memory > planning['hardware_memory_bytes'],
+            'exceeds_8gb_physical_vram': peak_vram > planning['hardware_vram_bytes'],
+            'estimation_notes': [
+                'Unparsed PDFs have unknown page counts; disk uses 1.5x source size.',
+                'Enhanced estimates are planning values only; no enhanced parser is installed.',
+                'Peak estimates assume concurrency 1 and heavy-job exclusivity.',
+            ],
+        }
+
+    def batch_plan(self, confirm_all_sources=False, **filters):
+        scoped = any(value for value in (
+            filters.get('course'), filters.get('subject'), filters.get('source_type'),
+            filters.get('profile'), filters.get('source_ids')))
+        if not scoped and not confirm_all_sources:
+            fail('BATCH_SCOPE_CONFIRMATION_REQUIRED')
+        selected = self._selected(**filters)
+        categories = {name: [] for name in sorted(BATCH_CATEGORIES)}
+        queued_keys = self._queued_task_keys()
+        max_size = self.limits['limits']['max_single_file_size_bytes']
+        for record, routing, profile in selected:
+            common = {'source_id': record['source_id'], 'profile': profile,
+                      'course': record['course'], 'subject': record['subject'],
+                      'source_type': record['source_type']}
+            if record['file_type'] != 'pdf':
+                categories['unsupported'].append({**common, 'page_number': None,
+                    'reason': 'phase2d0_pdf_only', 'file_type': record['file_type']})
+                continue
+            if record['size_bytes'] > max_size:
+                categories['resource_deferred'].append({**common, 'page_number': None,
+                    'reason': 'single_file_size_limit', 'size_bytes': record['size_bytes']})
+                continue
+            if record['parser_status'] == 'not_started':
+                item = {**common, 'page_number': None,
+                    'reason': 'basic_parse_not_started', 'size_bytes': record['size_bytes'],
+                    'requires_basic_parse': True}
+                target = ('already_queued' if (record['source_id'], None, 'basic') in queued_keys
+                          else 'basic')
+                if target == 'already_queued':
+                    item['reason'] = 'matching_basic_task_already_queued'
+                categories[target].append(item)
+                continue
+            if routing is None:
+                categories['manual_review'].append({**common, 'page_number': None,
+                    'reason': 'routing_plan_missing'})
+                continue
+            for decision in routing['decisions']:
+                item = {**common, 'page_number': decision['page_number'],
+                        'quality_score': decision['quality_score'],
+                        'reason': ','.join(decision['reasons']) or 'quality_normal'}
+                if decision['route'] == 'basic_accepted_candidate':
+                    categories['basic'].append({**item, 'requires_basic_parse': False})
+                elif decision['route'] == 'enhanced_parse_queued':
+                    enhanced = {**item,
+                        'parser_id': decision['preferred_enhanced_parser'],
+                        'status': 'waiting_for_future_parser'}
+                    target = ('already_queued'
+                              if (record['source_id'], decision['page_number'], 'enhanced') in queued_keys
+                              else 'enhanced')
+                    if target == 'already_queued':
+                        enhanced['reason'] = 'matching_enhanced_task_already_queued'
+                    categories[target].append(enhanced)
+                elif decision['route'] == 'review_required':
+                    categories['manual_review'].append(item)
+                else:
+                    categories['unsupported'].append(item)
+        limit = self.limits['planning']['default_batch_pages']
+        basic_tasks = [item for item in categories['basic'] if item['requires_basic_parse']]
+        enhanced_tasks = list(categories['enhanced'])
+        batches = []
+        # Unknown-page sources stay isolated so one source cannot silently exceed a batch.
+        for item in basic_tasks:
+            batches.append({'batch_type': 'basic', 'heavy': False,
+                            'max_concurrent_jobs': 1, 'tasks': [item]})
+        for group in chunks(enhanced_tasks, limit):
+            batches.append({'batch_type': 'enhanced', 'heavy': True,
+                            'max_concurrent_jobs': 1, 'tasks': group})
+        filters_record = {key: filters.get(key) for key in
+                          ('course', 'subject', 'source_type', 'profile')}
+        filters_record['source_ids'] = sorted(filters.get('source_ids') or [])
+        identity = {'filters': filters_record,
+                    'sources': [record['source_id'] for record, _, _ in selected],
+                    'routes': {key: len(value) for key, value in categories.items()}}
+        result = {
+            'schema_version': 1, 'document_type': 'batch_plan',
+            'plan_id': stable_plan_id('batch', identity), 'created_at': now_iso(),
+            'status': 'planned', 'dry_run': True, 'would_parse': False,
+            'would_modify_originals': False, 'would_modify_existing_outputs': False,
+            'unconfirmed_inbox_excluded': True, 'full_library_scope_confirmed': bool(confirm_all_sources),
+            'filters': filters_record, 'source_count': len(selected),
+            'default_max_pages_per_batch': limit, 'max_concurrent_jobs': 1,
+            'heavy_jobs_exclusive': True, 'resume_supported': True,
+            'single_page_retry_supported': True, 'categories': categories,
+            'batches': batches,
+        }
+        result['resource_estimate'] = self._resource_estimate(selected, categories)
+        return result
+
+    def save_batch_plan(self, plan):
+        if plan.get('document_type') != 'batch_plan' or plan.get('would_parse') is not False:
+            fail('BATCH_PLAN_INVALID')
+        relative = f'{JOB_QUEUE}/{plan["plan_id"]}.json'
+        self.manager.write_json(relative, plan)
+        return relative
+
+    def retry_page(self, source_id, page_number, save=False):
+        if not isinstance(source_id, str) or not SID.fullmatch(source_id):
+            fail('SOURCE_ID_INVALID')
+        if type(page_number) is not int or page_number < 1:
+            fail('PAGE_IDENTITY_INVALID')
+        if not self._selected(source_ids=[source_id]):
+            fail('SOURCE_NOT_REGISTERED')
+        plan = self._routing_plan(source_id)
+        if plan is None or page_number > plan['page_count']:
+            fail('ROUTING_PLAN_REQUIRED')
+        decision = plan['decisions'][page_number - 1]
+        checkpoint_relative = f'{CHECKPOINT_QUEUE}/{source_id}-page-{page_number:04d}.json'
+        checkpoint = self._optional_json(checkpoint_relative)
+        if checkpoint is None:
+            fail('RETRY_CHECKPOINT_REQUIRED')
+        required = {'schema_version', 'source_id', 'page_number', 'status',
+                    'retry_count', 'parser_id', 'error_code', 'updated_at'}
+        if (set(checkpoint) != required or checkpoint['schema_version'] != 1
+                or checkpoint['source_id'] != source_id
+                or checkpoint['page_number'] != page_number
+                or checkpoint['status'] != 'failed'
+                or type(checkpoint['retry_count']) is not int
+                or checkpoint['retry_count'] < 0
+                or not isinstance(checkpoint['error_code'], str)
+                or not re.fullmatch(r'[A-Z][A-Z0-9_]{2,63}', checkpoint['error_code'])
+                or not timezone_iso(checkpoint['updated_at'])):
+            fail('CHECKPOINT_INVALID')
+        parser_id = decision['preferred_enhanced_parser'] or 'basic_pymupdf'
+        task = PageStateMachine(source_id, page_number, 'failed').retry_task(
+            parser_id, checkpoint['error_code'], checkpoint['retry_count'],
+            self.limits['limits']['max_retry_count_per_page'])
+        identity = {'source_id': source_id, 'page_number': page_number,
+                    'retry_count': task['retry_count']}
+        result = {'schema_version': 1, 'document_type': 'single_page_retry',
+                  'job_id': stable_plan_id('retry', identity), 'created_at': now_iso(),
+                  'status': 'planned', 'dry_run': not save, 'would_parse': False,
+                  'preserve_basic_output': True, **task}
+        if save:
+            relative = f'{JOB_QUEUE}/{result["job_id"]}.json'
+            self.manager.write_json(relative, result)
+            result = {**result, 'saved_relative_path': relative}
+        return result
+
+    def resume_check(self, source_id=None):
+        if source_id is not None and not SID.fullmatch(source_id):
+            fail('SOURCE_ID_INVALID')
+        statuses = {'completed': 0, 'failed': 0, 'pending': 0}
+        pages = []
+        for relative in self.manager.walk(CHECKPOINT_QUEUE):
+            if relative == CHECKPOINT_QUEUE + '/.gitkeep':
+                continue
+            value = self.manager.load_json(relative)
+            if source_id is not None and value.get('source_id') != source_id:
+                continue
+            status = value.get('status')
+            bucket = 'completed' if status == 'completed' else ('failed' if status == 'failed' else 'pending')
+            statuses[bucket] += 1
+            pages.append({'source_id': value.get('source_id'),
+                          'page_number': value.get('page_number'), 'status': status})
+        return {'ok': True, 'read_only': True, 'source_id': source_id,
+                'checkpoint_counts': statuses, 'pages': pages,
+                'resume_from_last_verified_page': True,
+                'whole_library_rerun_allowed': False}
+
+
 def cli(argv=None):
-    parser = argparse.ArgumentParser(description='Phase 2C read-only quality routing architecture.')
+    parser = argparse.ArgumentParser(
+        description='Phase 2C quality routing and Phase 2D-0 metadata-only batch planning.')
     sub = parser.add_subparsers(dest='command', required=True)
     check = sub.add_parser('validate-config', help='Validate parsing profiles and resource limits')
     check.set_defaults(command='validate-config')
@@ -712,9 +1109,38 @@ def cli(argv=None):
     plan.add_argument('--save', action='store_true', help='Save one non-content routing plan')
     verify = sub.add_parser('verify-plan', help='Validate a saved routing plan against its source')
     verify.add_argument('source_id')
+
+    def add_filters(command, allow_save=False):
+        command.add_argument('--source-id', action='append', dest='source_ids')
+        command.add_argument('--course')
+        command.add_argument('--subject')
+        command.add_argument('--source-type')
+        command.add_argument('--profile')
+        if allow_save:
+            command.add_argument('--save', action='store_true',
+                                 help='Save metadata-only plan; never starts parsing')
+
+    source_status = sub.add_parser('source-status', help='Show registered source planning status')
+    add_filters(source_status)
+    batch = sub.add_parser('batch-plan', help='Create a dry-run batch plan; never parses')
+    add_filters(batch, allow_save=True)
+    batch.add_argument('--confirm-all-sources', action='store_true',
+                       help='Explicitly allow an unfiltered whole-library planning view')
+    queue = sub.add_parser('queue-status', help='Read local plan/retry queue metadata')
+    queue.set_defaults(command='queue-status')
+    estimate = sub.add_parser('estimate-resources', help='Estimate a dry-run batch resource envelope')
+    add_filters(estimate)
+    estimate.add_argument('--confirm-all-sources', action='store_true')
+    retry = sub.add_parser('retry-page', help='Plan one failed page retry without parsing')
+    retry.add_argument('source_id')
+    retry.add_argument('page_number', type=int)
+    retry.add_argument('--save', action='store_true',
+                       help='Save retry metadata only; never invokes a parser')
+    resume = sub.add_parser('resume-check', help='Read checkpoints for safe resume planning')
+    resume.add_argument('--source-id')
     args = parser.parse_args(argv)
     try:
-        planner = RoutingPlanner()
+        planner = BatchPlanner()
         if args.command == 'validate-config':
             result = {'ok': True, 'profiles': sorted(planner.profiles['profiles']),
                       'max_concurrent_jobs': planner.limits['limits']['max_concurrent_jobs']}
@@ -723,8 +1149,32 @@ def cli(argv=None):
             if args.save:
                 result = {'saved': True, 'plan_path': planner.save_plan(result),
                           'source_id': result['source_id'], 'page_count': result['page_count']}
-        else:
+        elif args.command == 'verify-plan':
             result = planner.verify_plan(args.source_id)
+        elif args.command == 'source-status':
+            result = planner.source_status(
+                course=args.course, subject=args.subject, source_type=args.source_type,
+                profile=args.profile, source_ids=args.source_ids)
+        elif args.command == 'batch-plan':
+            result = planner.batch_plan(
+                confirm_all_sources=args.confirm_all_sources, course=args.course,
+                subject=args.subject, source_type=args.source_type,
+                profile=args.profile, source_ids=args.source_ids)
+            if args.save:
+                result = {**result, 'saved_relative_path': planner.save_batch_plan(result)}
+        elif args.command == 'queue-status':
+            result = planner.queue_status()
+        elif args.command == 'estimate-resources':
+            plan_result = planner.batch_plan(
+                confirm_all_sources=args.confirm_all_sources, course=args.course,
+                subject=args.subject, source_type=args.source_type,
+                profile=args.profile, source_ids=args.source_ids)
+            result = {'ok': True, 'dry_run': True, 'filters': plan_result['filters'],
+                      'resource_estimate': plan_result['resource_estimate']}
+        elif args.command == 'retry-page':
+            result = planner.retry_page(args.source_id, args.page_number, args.save)
+        else:
+            result = planner.resume_check(args.source_id)
         print(json_bytes(result).decode('utf-8'), end='')
         return 0
     except ArchitectureError as exc:

@@ -4,7 +4,7 @@
 
 ## 当前阶段
 
-Phase 0、Phase 1、Phase 2A 和 Phase 2B 框架已提交。当前 Phase 2C-Architecture 只建立页面级解析器接口、质量路由、状态机、资源门禁和合成评估集。不安装 MinerU、Docling、OCR、CUDA 版 PyTorch 或 Docker，不下载模型，不调用网络/API，不重解析或覆盖已有资料。
+Phase 0、Phase 1、Phase 2A、Phase 2B 和 Phase 2C 架构已提交。当前 Phase 2D-0 只建立大规模资料的批次统计、资源估算、断点检查和轻量队列；这些命令不调用解析器。不安装 MinerU、Docling、OCR、CUDA 版 PyTorch 或 Docker，不下载模型，不调用网络/API，不重解析或覆盖已有资料。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
@@ -128,6 +128,19 @@ py -3.12 -B scripts/parsing_architecture.py verify-plan <source_id>
 ```
 
 三种档案、分层目录、状态机和未来 MinerU 接入边界见 `vault/00-System/Scalable-Parsing-Architecture.md`。
+
+Phase 2D-0 在现有 manifest、路由计划和队列元数据上做 dry-run 规划：
+
+```powershell
+py -3.12 -B scripts/parsing_architecture.py source-status --course 408
+py -3.12 -B scripts/parsing_architecture.py batch-plan --course 408 --subject computer-organization
+py -3.12 -B scripts/parsing_architecture.py estimate-resources --profile cs408_symbol_dense
+py -3.12 -B scripts/parsing_architecture.py queue-status
+py -3.12 -B scripts/parsing_architecture.py resume-check --source-id <source_id>
+py -3.12 -B scripts/parsing_architecture.py retry-page <source_id> <页码>
+```
+
+`batch-plan` 默认只输出计划，`--save` 也只保存队列元数据，不启动解析。无任何筛选的全库计划必须额外给出 `--confirm-all-sources`。默认每批最多 25 页、并发 1，重型增强批次与基础批次严格分开。完整说明见 `vault/00-System/Batch-Parsing-Guide.md`。
 
 ## 后续路线（每阶段开始前确认）
 
