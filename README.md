@@ -14,6 +14,8 @@ Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定
 
 公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-System/Enhanced-Parsing-Guide.md`。
 
+页级检索使用 Python 自带 SQLite FTS5，不需要大模型或网络服务。默认只查 accepted 页面；显式预览参数才能查看未审核基础/增强候选。索引位于被忽略的 `indexes/`，可从来源和派生文件重建。详见 `vault/00-System/Local-Retrieval-Guide.md`。
+
 ## 目录用途
 
 | 目录 | 用途 |
@@ -68,6 +70,7 @@ py -3.12 -B scripts/validate_vault.py
 py -3.12 -B scripts/source_manager.py verify
 py -3.12 -B scripts/pdf_parser.py --help
 py -3.12 -B scripts/enhanced_parser.py model-status
+py -3.12 -B scripts/local_search.py --help
 py -3.12 -B -m unittest discover -s tests -v
 git status --short
 git diff --stat
@@ -155,6 +158,18 @@ py -3.12 -B scripts/enhanced_parser.py verify-output <source_id> <页码>
 ```
 
 目标存在时拒绝覆盖。增强候选包含原页预览、模型 Markdown、结构化结果、运行指标、候选清单和审核清单；真实产物继续被 Git 忽略。
+
+Phase 3 最小本地检索闭环：
+
+```powershell
+py -3.12 -B scripts/local_search.py build
+py -3.12 -B scripts/local_search.py status
+py -3.12 -B scripts/local_search.py search "关键词"
+py -3.12 -B scripts/local_search.py search "关键词" --source-id <source_id> --page <页码> --include-review-candidates
+py -3.12 -B scripts/local_search.py verify
+```
+
+当前没有人工接受页面时，默认查询明确返回“暂无已审核资料”。预览候选需要建库与查询两处均显式指定，结果标明 `UNREVIEWED_CANDIDATE`。
 
 ## 后续路线（每阶段开始前确认）
 

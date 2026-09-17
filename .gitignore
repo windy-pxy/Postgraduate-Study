@@ -82,3 +82,7 @@ api_cache/
 # Local models and caches never enter Git.
 /models/*
 !/models/.gitkeep
+
+# Rebuildable local retrieval index stays on this machine.
+/indexes/*
+!/indexes/.gitkeep

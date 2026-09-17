@@ -47,10 +47,12 @@ vault/90-Parsed-Sources/<source_id>/
 │  ├─ routing-decisions.json
 │  └─ comparison-report.md
 └─ accepted/
+   ├─ pages/
+   │  └─ page-XXXX.md
    └─ retrieval-ready.md
 ```
 
-`basic/` 保存基础事实快照；`enhanced/` 只保存不同解析器的候选；`annotations/` 保存人工注释而不改写旧结果；`quality/` 保存指标和路由理由；`accepted/` 只能在明确审核或未来经过批准的受控规则下生成。正式知识笔记仍位于其他编号目录。
+`basic/` 保存基础事实快照；`enhanced/` 只保存不同解析器的候选；`annotations/` 保存人工注释而不改写旧结果；`quality/` 保存指标和路由理由；`accepted/` 只能在明确审核或未来经过批准的受控规则下生成。页级检索读取 `accepted/pages/`，`retrieval-ready.md` 作为人工导航。正式知识笔记仍位于其他编号目录。
 
 当前已解析来源保留 Phase 2B 的扁平目录，标记为 `phase2b_legacy_flat_read_only`。其路由计划只保存在本地 `review-queue/parsing-routing/`，不会进入 Git，也没有移动、重写或重新解析现有页面。未来迁移必须设计单独的复制、校验和回滚流程，本阶段不执行。
 
