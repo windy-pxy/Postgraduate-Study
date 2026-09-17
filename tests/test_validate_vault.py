@@ -42,12 +42,12 @@ class MetadataTests(unittest.TestCase):
             self.assertEqual(codes({'note.md': note(metadata(mastery=mastery))}), set())
 
     def test_enhanced_parsing_guide_is_registered_system_note(self):
-        self.assertIn('00-System/Enhanced-Parsing-Guide.md', vault.SYSTEM_NOTES)
+        self.assertIn('00-系统维护/Enhanced-Parsing-Guide.md', vault.SYSTEM_NOTES)
 
     def test_claudian_policy_and_guide_are_registered_system_notes(self):
         self.assertIn('AGENTS.md', vault.SYSTEM_NOTES)
-        self.assertIn('00-System/Claudian-Study-Pilot-Guide.md', vault.SYSTEM_NOTES)
-        self.assertIn('00-System/Review-Acceptance-Guide.md', vault.SYSTEM_NOTES)
+        self.assertIn('00-系统维护/Claudian-Study-Pilot-Guide.md', vault.SYSTEM_NOTES)
+        self.assertIn('00-系统维护/Review-Acceptance-Guide.md', vault.SYSTEM_NOTES)
 
     def test_all_types_and_both_courses(self):
         for kind in vault.TYPES:
@@ -114,13 +114,13 @@ class MetadataTests(unittest.TestCase):
 
     def test_template_placeholders_allowed_but_yaml_checked(self):
         for name in vault.TEMPLATES:
-            path = '99-Templates/' + name
+            path = '99-笔记模板/' + name
             content = (ROOT / 'vault' / path).read_text(encoding='utf-8')
             self.assertEqual(codes({path: content}), set())
-        self.assertIn('YAML_INVALID', codes({'99-Templates/Knowledge-Note.md': '---\na: [\n---'}))
+        self.assertIn('YAML_INVALID', codes({'99-笔记模板/知识笔记模板.md': '---\na: [\n---'}))
 
     def test_template_concrete_invalid_values_not_exempt(self):
-        path = '99-Templates/Knowledge-Note.md'
+        path = '99-笔记模板/知识笔记模板.md'
         content = (ROOT / 'vault' / path).read_text(encoding='utf-8').replace('mastery: "{{mastery}}"', 'mastery: 9')
         self.assertIn('MASTERY_INVALID', codes({path: content}))
         self.assertIn('TEMPLATE_ID_PLACEHOLDER_REQUIRED', codes({path: note()}))
@@ -129,8 +129,8 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('UNRESOLVED_PLACEHOLDER', codes({'note.md': note(body='{{unfilled}}')}))
 
     def test_exemptions_are_explicit_not_directory_wide(self):
-        self.assertEqual(codes({'00-System/Home.md': '# Home'}), set())
-        for path in ('00-System/new.md', '99-Templates/new.md', 'notes/new.md'):
+        self.assertEqual(codes({'学习主页.md': '# Home'}), set())
+        for path in ('00-系统维护/new.md', '99-笔记模板/new.md', 'notes/new.md'):
             self.assertIn('FRONTMATTER_REQUIRED', codes({path: '# Empty'}))
 
     def test_registered_parsed_markdown_uses_dedicated_validator(self):
@@ -227,22 +227,22 @@ class IgnoreRuleTests(unittest.TestCase):
             'vault/90-Parsed-Sources/src-abcdef123456/index.md',
             'sources-original/math1/book.PDF', 'sources-original/408/slides.ppt',
             'sources-original/408/slides.pptx', 'sources-original/math1/book.doc',
-            'sources-original/math1/book.docx', 'vault/80-Attachments/book.pdf',
+            'sources-original/math1/book.docx', 'vault/80-附件/book.pdf',
         ], True)
 
     def test_safe_project_files_remain_trackable(self):
         self.assert_ignored([
             '.env.example', 'AGENTS.md', 'README.md',
-            'vault/03-Knowledge-Notes/note.md', 'prompts/example.md',
+            'vault/03-知识笔记/note.md', 'prompts/example.md',
             'scripts/validate_vault.py', 'tests/test_validate_vault.py',
             'scripts/pdf_parser.py', 'tests/test_pdf_parser.py', 'requirements.txt',
             'scripts/parsing_architecture.py', 'tests/test_parsing_architecture.py',
             'config/parsing-profiles.yaml', 'config/resource-limits.yaml',
             'config/enhanced-parser.example.json', 'config/mineru-4.0.requirements.lock.txt',
             'scripts/enhanced_parser.py', 'scripts/enhanced_worker.py',
-            'vault/00-System/Enhanced-Parsing-Guide.md',
-            'vault/00-System/Local-Retrieval-Guide.md', 'scripts/local_search.py',
-            'vault/00-System/Review-Acceptance-Guide.md', 'scripts/review_manager.py',
+            'vault/00-系统维护/Enhanced-Parsing-Guide.md',
+            'vault/00-系统维护/Local-Retrieval-Guide.md', 'scripts/local_search.py',
+            'vault/00-系统维护/Review-Acceptance-Guide.md', 'scripts/review_manager.py',
             'indexes/.gitkeep',
             'config/providers.example.yaml', 'config/sources-original.baseline.example.json',
             'config/source-manifests/.gitkeep', 'import-inbox/.gitkeep',

@@ -4,4 +4,4 @@
 
 当前仅建立入口，未添加实际学习内容或记录。
 
-[[99-Templates/Source-Note|打开模板]] · [[00-System/Metadata-Schema|字段规范]] · [[00-System/Home|返回首页]]
+[[99-笔记模板/资料笔记模板|打开模板]] · [[00-系统维护/Metadata-Schema|字段规范]] · [[学习主页|返回首页]]

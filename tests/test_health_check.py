@@ -24,7 +24,7 @@ class HealthTests(unittest.TestCase):
         self.assertTrue(all(ok for _, ok in self.simulated()))
 
     def test_missing_directory_and_file(self):
-        for name in ('sources-original', 'vault/04-Mistakes', 'AGENTS.md',
+        for name in ('sources-original', 'vault/04-错题本', 'AGENTS.md',
                      'config/providers.example.yaml', '.git'):
             with self.subTest(name=name):
                 self.assertFalse(all(ok for _, ok in self.simulated(missing=name)))
@@ -48,7 +48,7 @@ class HealthTests(unittest.TestCase):
     def test_examples_notes_placeholders_allowed(self):
         for name in ('.env.example', 'config/providers.example.yaml',
                      'config/sources-original.baseline.example.json',
-                     'vault/03-Knowledge-Notes/笔记.md', 'sources-original/math1/.gitkeep'):
+                     'vault/03-知识笔记/笔记.md', 'sources-original/math1/.gitkeep'):
             self.assertFalse(health.forbidden_tracked(name))
         for name in ('config/source-manifests/.gitkeep', 'import-inbox/.gitkeep',
                      'review-queue/import-plans/.gitkeep',

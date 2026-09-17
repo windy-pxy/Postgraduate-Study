@@ -1,19 +1,20 @@
 # HANDOVER.md — 项目转接手说明
 
 > 用途：WorkBuddy AI 与 Codex 之间转接手本项目时的状态快照与行动清单。
-> 最近更新：2026-09-17（WorkBuddy，Codex 额度耗尽期间代管）。
+> 最近更新：2026-09-17（Codex，Phase 3B 与个人学习入口整理）。
 
 ## 0. 先读规则
 
-- 根目录 `AGENTS.md`：全项目强制施工规则（原件只读、不自动接受、commit 需用户明确确认等 30 条）。
+- 根目录 `AGENTS.md`：全项目强制施工规则（原件只读、不自动接受、中文学习入口优先等）。
 - `vault/AGENTS.md`：`study_readonly_pilot`，Claudian 会话内的强制规则。
 - 任何与本文件冲突时，以上两份规则优先。
 
-## 1. 当前状态快照（2026-09-17 18:00 验证全绿）
+## 1. 当前状态快照
 
-- 已提交阶段：Phase 0 → 1 → 2A → 2B → 2C → 2D-0 → 2E → 3（本地检索）→ **3A（Claudian 只读试点）**，HEAD = `1c6e55c`（`feat: add claudian readonly pilot and handover docs`，2026-09-17 经用户明确确认提交）。
+- Phase 3B 已提交：HEAD 至少包含 `a1feca9`（`feat: add manual review and acceptance`）。接受、撤销、验证和状态使用 `scripts/review_manager.py`，不得再手工复制 accepted 文件。
 - Claudian 已在 Obsidian 配置完成：Codex provider enabled、`safeMode=read-only`、Native Windows（`vault/.claudian/claudian-settings.json`）。
-- 验证基线：health_check 8/8 PASS；validate_vault 47 文件 0 问题；source verify ok；pdf/enhanced verify-output ok；local_search verify ok（含 5 条候选）；run-pilot ok；单元测试 **185 个全过**。
+- 当前真实 accepted 页面为 0；第 2 页有 basic、MinerU 和人工校正三个待审核候选。
+- 最近验证：health_check 通过；validate_vault 51 文件 0 问题；source、pdf、enhanced、review 和 local_search 验证通过；run-pilot 通过；单元测试 **198 个全过**。
 
 ## 2. 本次代管期间 WorkBuddy 的变更（仓库内容已随 1c6e55c 提交）
 
@@ -30,30 +31,27 @@
 - enhanced（MinerU 4.0.0）：Q15 LaTeX 正确；**Q20 题干丢失**、Q17 损坏更重、Q23/Q24 粘连、Q13 丢逗号 → 候选不可接受。
 - 处置方案：不接受两个机器候选；改用人工校正转写候选，用户逐题核对后接受。
 
-## 4. 待用户决策事项（接手后先问用户）
+## 4. 待用户决策事项
 
-1. ~~是否 commit Phase 3A 未提交改动~~ **已于 2026-09-17 完成（1c6e55c）**。
-2. 是否接受校正转写候选为第 2 页 accepted 版本。
-3. 若接受，是否授权顺手接受第 1、3、4 页（basic 提取，无公式乱码问题，但仍需用户目检）。
+1. 是否逐题核对并接受第 2 页人工校正候选。
+2. 第 1、3、4 页只有在用户逐页目检并明确授权后才能接受，不得顺手批量接受。
 
-## 5. 接受（acceptance）操作手册（无现成脚本，手工步骤）
+## 5. 接受操作手册
 
 仅在用户明确说"接受第 2 页校正候选"后执行：
 
 1. 用户逐题核对候选与 `assets/page-0002.png`。
-2. 复制候选到 `vault/90-Parsed-Sources/src-e1df768ce191/accepted/pages/page-0002.md`（新建，不覆盖）。
-3. 把该文件 frontmatter 的 `review_status` 改为 `"accepted"`（其余键不动，集合必须与 `local_search.py` `_accepted()` 校验一致：`source_id/source_sha256/source_page/derived/review_status/parser_id/parser_version`）。
-4. `py -3.12 -B scripts/local_search.py build --rebuild --include-review-candidates`
-5. `py -3.12 -B scripts/local_search.py verify` + `search "补码"` 应返回 accepted 结果（不再是"暂无已审核资料"）。
-6. `py -3.12 -B scripts/validate_claudian_pilot.py run-pilot` 复验。
+2. 先运行 `review_manager.py accept` 默认 dry-run，核对 source_id、页码、候选路径与哈希。
+3. 只有用户明确授权后才追加 `--apply`；工具创建不可覆盖快照和接受事件。
+4. 运行 `review_manager.py verify`，再显式重建并验证本地索引。
+5. 撤销必须使用 `review_manager.py revoke`；只追加撤销事件，不删除历史快照。
 
-## 6. Codex 额度恢复后的第一批动作
+## 6. 日常入口
 
-1. 读本文件 + `logs/autonomous-progress.json` + `review-queue/` 两个审核文件 + `prompts/handover-to-codex.md`（续接话术）。
-2. 先跑只读验证确认真实状态：`health_check.py` / `validate_vault.py` / `local_search.py verify` / `validate_claudian_pilot.py run-pilot`，全绿再继续；有差异先报告，不要自行修复。
-3. 与用户确认第 4 节待决策事项。
-4. 若 Phase 3A 已提交且 Codex 可用：按 `vault/00-System/Claudian-Study-Pilot-Guide.md` 在 Obsidian 内跑 3 条 UI 试问（人在环，用户手动输入，不要用命令/截图自动化 GUI）。
-5. 后续路线：Phase 4（多模型适配、带来源页码的问答）；增强解析器对试卷类双栏密排页面的结构性问题（丢题干、粘连）应记录为解析器评估输入，不要直接重跑覆盖既有候选。
+1. 从 `vault/学习主页.md` 开始。
+2. `vault/教材资料.md` 提供当前资料、原始页预览和候选入口。
+3. `vault/日常辅导.md` 区分一般讲解、指定候选辅导与严格资料查询，并提供可复制提示词。
+4. 当前 Claudian 维持 read-only；保存笔记时在聊天中生成 Markdown，再由用户复制到中文知识笔记或错题目录。
 
 ### 接手后明确不要做的事
 

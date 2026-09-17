@@ -26,30 +26,37 @@ REQUIRED = ('id', 'type', 'course', 'subject', 'chapter', 'knowledge_points',
             'status', 'created', 'updated', 'review_dates', 'tags')
 ERROR_TYPES = {'concept', 'calculation', 'method', 'reading', 'memory', 'careless', 'unknown'}
 TEMPLATES = {
-    'Knowledge-Note.md': 'knowledge', 'Mistake.md': 'mistake',
-    'Source-Note.md': 'source-note', 'Past-Paper.md': 'past-paper',
-    'Stage-Test.md': 'stage-test', 'Study-Record.md': 'study-record', 'Weakness.md': 'weakness',
+    '知识笔记模板.md': 'knowledge', '错题模板.md': 'mistake',
+    '资料笔记模板.md': 'source-note', '真题模板.md': 'past-paper',
+    '阶段测试模板.md': 'stage-test', '学习记录模板.md': 'study-record', '薄弱点模板.md': 'weakness',
 }
 SYSTEM_NOTES = {
-    '00-System/Home.md', '00-System/Metadata-Schema.md', '00-System/Linking-Rules.md',
-    '00-System/Validation-Guide.md', '00-System/Review-Queue.md',
-    '00-System/Source-Import-Guide.md',
-    '00-System/PDF-Parsing-Guide.md',
-    '00-System/Enhanced-Parsing-Guide.md',
-    '00-System/Local-Retrieval-Guide.md',
-    '00-System/Review-Acceptance-Guide.md',
-    '00-System/Claudian-Study-Pilot-Guide.md',
-    '00-System/Scalable-Parsing-Architecture.md',
-    '00-System/Batch-Parsing-Guide.md',
-    '01-Math1/Math1-MOC.md', '02-408/408-MOC.md',
-    '03-Knowledge-Notes/Knowledge-MOC.md', '04-Mistakes/Mistakes-MOC.md',
-    '05-Past-Papers/Past-Papers-MOC.md', '06-Stage-Tests/Stage-Tests-MOC.md',
-    '07-Weakness-Analysis/Weakness-MOC.md', '08-Study-Records/Study-Records-MOC.md',
-    '80-Attachments/Attachments-MOC.md', '90-Parsed-Sources/Parsed-Sources-MOC.md',
-    '99-Templates/Templates-MOC.md',
+    '学习主页.md', '教材资料.md', '日常辅导.md',
+    '00-系统维护/系统维护入口.md',
+    '00-系统维护/Metadata-Schema.md', '00-系统维护/Linking-Rules.md',
+    '00-系统维护/Validation-Guide.md', '00-系统维护/Review-Queue.md',
+    '00-系统维护/Source-Import-Guide.md',
+    '00-系统维护/PDF-Parsing-Guide.md',
+    '00-系统维护/Enhanced-Parsing-Guide.md',
+    '00-系统维护/Local-Retrieval-Guide.md',
+    '00-系统维护/Review-Acceptance-Guide.md',
+    '00-系统维护/Claudian-Study-Pilot-Guide.md',
+    '00-系统维护/Scalable-Parsing-Architecture.md',
+    '00-系统维护/Batch-Parsing-Guide.md',
+    '01-数学一/数学一导航.md', '02-408/408导航.md',
+    '03-知识笔记/知识笔记导航.md', '04-错题本/错题本导航.md',
+    '05-历年真题/历年真题导航.md', '06-阶段测试/阶段测试导航.md',
+    '07-薄弱点/薄弱点导航.md', '08-学习记录/学习记录导航.md',
+    '80-附件/附件导航.md', '90-Parsed-Sources/Parsed-Sources-MOC.md',
+    '99-笔记模板/笔记模板导航.md',
     'AGENTS.md',
-    *{f'01-Math1/{s}/{s}-MOC.md' for s in SUBJECTS['math1']},
-    *{f'02-408/{s}/{s}-MOC.md' for s in SUBJECTS['408']},
+    '01-数学一/高等数学/高等数学导航.md',
+    '01-数学一/线性代数/线性代数导航.md',
+    '01-数学一/概率论与数理统计/概率论与数理统计导航.md',
+    '02-408/数据结构/数据结构导航.md',
+    '02-408/计算机组成原理/计算机组成原理导航.md',
+    '02-408/操作系统/操作系统导航.md',
+    '02-408/计算机网络/计算机网络导航.md',
 }
 PLACEHOLDER = re.compile(r'\{\{[A-Za-z][A-Za-z0-9_]*\}\}')
 WIKI = re.compile(r'!?\[\[([^\[\]\n]+)\]\]')
@@ -184,7 +191,7 @@ def validate_documents(documents, assets=None):
         def fail(code, field=''):
             issues.append((path, code, field))
 
-        is_template = path in {'99-Templates/' + name for name in TEMPLATES}
+        is_template = path in {'99-笔记模板/' + name for name in TEMPLATES}
         infrastructure = path in SYSTEM_NOTES or parsed_output_document(path)
         try:
             meta, body = frontmatter(content)
@@ -387,12 +394,12 @@ def validate_project(root):
                     documents[name] = (root / 'vault' / name).read_text(encoding='utf-8-sig')
                 except UnicodeError:
                     issues.append((name, 'UTF8_REQUIRED', ''))
-        for name in SYSTEM_NOTES | {'99-Templates/' + n for n in TEMPLATES}:
+        for name in SYSTEM_NOTES | {'99-笔记模板/' + n for n in TEMPLATES}:
             if name not in documents:
                 issues.append((name, 'STRUCTURE_FILE_REQUIRED', ''))
         issues.extend(validate_documents(documents, assets))
         for name, content in documents.items():
-            if name in SYSTEM_NOTES or name.startswith('99-Templates/'):
+            if name in SYSTEM_NOTES or name.startswith('99-笔记模板/'):
                 continue
             try:
                 meta, _ = frontmatter(content)

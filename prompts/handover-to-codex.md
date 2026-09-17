@@ -11,7 +11,7 @@
 2. `D:\Postgraduate-Study\logs\autonomous-progress.json` —— 你之前的进度记录。
 3. `D:\Postgraduate-Study\review-queue\src-e1df768ce191-page-0002-comparison.md` —— 第 2 页三方对照 + 校正清单。
 4. `D:\Postgraduate-Study\review-queue\src-e1df768ce191-page-0002-corrected-candidate.md` —— 人工校正转写候选。
-5. `D:\Postgraduate-Study\vault\00-System\Claudian-Study-Pilot-Guide.md` —— 重点看"首次试点"的 3 条测试问题。
+5. `D:\Postgraduate-Study\vault\00-系统维护\Claudian-Study-Pilot-Guide.md` —— 重点看“首次试点”的 3 条测试问题。
 6. `D:\Postgraduate-Study\vault\AGENTS.md` 与 `D:\Postgraduate-Study\AGENTS.md` —— 强制规则。
 
 ## 你离开期间，WorkBuddy 代管做了什么（不要当成"未完成"去重做）

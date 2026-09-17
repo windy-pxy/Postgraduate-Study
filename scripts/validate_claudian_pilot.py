@@ -23,9 +23,9 @@ REQUIRED_POLICY_TEXT = (
     'study_readonly_pilot', 'read-only', '暂无已审核资料', 'review_required',
     'source_id', 'parser_version', '90-Parsed-Sources/', 'sources-original/',
     'import-inbox/', 'config/source-manifests/', 'config/sources-original.baseline.json',
-    'review-queue/', '生成草稿', '03-Knowledge-Notes/AI-Drafts/',
+    'review-queue/', '生成草稿', '03-知识笔记/', '04-错题本/',
     '只读文件操作', '不得执行项目脚本', '写入型命令',
-    '有效接受事件',
+    '有效接受事件', '严格资料查询', '模型补充',
     '不得自行把候选内容标为 accepted/approved',
 )
 

@@ -14,7 +14,7 @@
 10. 后续知识问答必须标注资料来源和页码；无法确定页码或资料内容时明确说明，不得编造内容、引用或页码。
 11. 原始 PDF、PPT、Word 等资料不得提交。修改前和完成后检查 Git 状态；未经用户明确确认不得执行 `git commit`。
 12. 后续工具须先验证路径在项目内，并拒绝通过符号链接或目录联接越界；写入操作须额外拒绝原始资料目录。只读约束不能仅依赖 `.gitignore`。
-13. 正式笔记遵守 `vault/00-System/Metadata-Schema.md` 与 `Linking-Rules.md`，模板不得填入虚构数据。来源或关联不确定时进入 `vault/00-System/Review-Queue.md`，不得编造双链。
+13. 正式笔记遵守 `vault/00-系统维护/Metadata-Schema.md` 与 `Linking-Rules.md`，模板不得填入虚构数据。来源或关联不确定时进入 `vault/00-系统维护/Review-Queue.md`，不得编造双链。
 14. `scripts/validate_vault.py` 与健康检查通过 `source_manager.py` 只读检查完整性，不自动修复。`config/sources-original.baseline.json` 已升级为 SHA-256 身份锚点；完整 SHA-256 为内容一致性依据，文件名/大小/时间不能替代它。清单与原件冲突时必须停止，禁止通过删改或重建基线掩盖异常。
 15. `scan`、`verify`、`list`、`status` 只读；`plan` 默认预览，仅明确 `--save` 写入 `review-queue/import-plans/`。`apply` 必须指定计划且默认 dry-run，仅明确 `--apply` 复制；不得模糊批量导入。分类必须由用户确认，不猜测；仅支持 PDF、PPTX、DOCX 并校验签名/结构。
 16. 每个来源使用稳定 source_id、完整 SHA-256 及独立 JSON 清单；相同哈希不得重复导入，同名不同内容不得覆盖。原件与清单分别经临时文件、校验与不覆盖的原子发布；部分成功时保留原件并报错，不删除原件回滚。
@@ -31,7 +31,8 @@
 27. Phase 2D-0 只允许读取已确认 manifest、质量路由和本地队列来生成批次计划与资源估算。默认每批最多 25 页、并发 1；重型增强任务不得与普通批次并发。无筛选的全库计划必须显式确认，计划和重试命令不得调用解析器，未确认 inbox 文件不得进入队列。
 28. 增强解析只接受完整性通过、已登记且路由为 `enhanced_parse_queued` 的单页。增强结果写入新的 `enhanced/mineru/page-XXXX/` 候选目录，必须保持 `derived`、`candidate_only` 和 `review_required`；不得覆盖基础结果、重复解析已有目标或自动生成 accepted 内容。
 29. 本地检索默认只使用明确人工接受的 `accepted/pages/page-XXXX.md`。待审核基础/增强候选仅可经显式预览选项加入索引和查询，必须显示风险与解析版本；不得生成答案或把同页多个版本无标识合并。SQLite 索引可重建但不进入 Git。
-30. Claudian 学习试点使用 `vault/AGENTS.md` 中的 `study_readonly_pilot` 规则。必须在 Claudian 设置中选择 Codex、Native Windows、Normal/Safe 权限与 `read-only`；不得使用 YOLO、workspace-write、MCP、子代理或自动编辑。正式问答只引用 accepted 内容；候选预览必须明确标注待审核、来源 ID、页码和解析器版本。Claudian 仅可在 vault 内列目录、搜索和读取文件，不得执行项目脚本、写入型或网络命令，不得自行接受候选、下载依赖或创建文件；仅当用户明确说“生成草稿”时，未来写入模式才可在 `vault/03-Knowledge-Notes/AI-Drafts/` 新建草稿，且仍需另行切换受控写入模式。
+30. Claudian 使用 `vault/AGENTS.md` 中的 `study_readonly_pilot` 规则。必须在 Claudian 设置中选择 Codex、Native Windows、Normal/Safe 权限与 `read-only`；不得使用 YOLO、workspace-write、MCP、子代理或自动编辑。严格资料查询只引用 accepted 内容；用户明确指定候选用于日常辅导时必须标注待审核、来源 ID、页码和解析器版本。Claudian 仅可在 vault 内列目录、搜索和读取文件，不得执行项目脚本、写入型或网络命令，不得自行接受候选、下载依赖或创建文件；保存请求只在聊天中生成可复制 Markdown，不切换写入权限。
 31. accepted 内容必须由 Phase 3B 审核工具通过显式 `accept --apply` 新建不可覆盖快照和接受事件；仅修改 frontmatter 不构成有效接受。接受与撤销默认 dry-run，撤销只追加事件并保留历史快照。正式索引必须核验原件、候选、快照、接受事件和撤销状态；审核状态变化后旧索引必须拒绝查询，不能自动接受、覆盖或删除历史。
+32. 本项目按个人学习工具维护：中文学习入口优先、步骤尽量少，技术指南集中在 `vault/00-系统维护/`。严格资料查询继续只使用有效 accepted 内容；日常辅导可讲一般知识或读取用户明确指定的候选，但必须区分资料内容、模型补充和识别不确定。只有用户明确要求保存、整理或加入错题本时才生成笔记草稿；当前只读助教以聊天中输出 Markdown 供用户复制，不为省一次复制扩建写入审批系统。按实际问题迭代并做与改动风险相称的验证，不为未出现的问题继续扩建架构。
 
 这些是项目行为约束，不代表已经设置 Windows ACL。Phase 0 不修改系统权限；后续写入工具必须实现并测试路径保护。

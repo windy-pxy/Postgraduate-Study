@@ -1,46 +1,46 @@
 # 数学一 + 408 Obsidian AI 考研学习系统
 
-为未来 1～2 年的数学一与 408 学习建立本地、可迁移、可审阅的资料与笔记基础。最终运行不依赖 ChatGPT；后续计划通过适配器支持 DeepSeek、Claude、OpenAI 兼容 API 和本地模型。
+这是个人使用的数学一与 408 学习系统。日常从 Obsidian 的 `学习主页.md` 进入，资料、提问、知识笔记和错题都从中文入口找到；导入、解析和校验工具放在后台维护区。
 
 ## 当前阶段
 
-Phase 0 至 Claudian 只读学习问答试点已提交。MinerU 4.0.0 已在项目隔离环境中跑通合成页和一个授权真实异常页；结果仍是待审核候选。当前 Phase 3B 建立可追溯的人工接受与撤销门禁，不自动接受任何页面。
+Phase 3B 已提交：人工接受与撤销可追溯，严格检索只使用有效 accepted 内容。当前 accepted 页面仍为 0。日常辅导可以讲一般知识或读取用户明确指定的候选，并明确标注资料、模型补充和识别不确定；不会自动接受页面。
 
 Phase 0 工具只用标准库；Phase 1 验证器使用本机已有的 PyYAML 6.0.3，本次不安装依赖。迁移后若缺少 PyYAML，工具会明确提示，不会自动安装。
 
-Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接执行脚本即可。完整中文指南在 `vault/00-System/Source-Import-Guide.md`。
+Phase 2A 的 `scripts/source_manager.py` 只使用 Python 标准库，CLI 直接执行脚本即可。完整中文指南在 `vault/00-系统维护/Source-Import-Guide.md`。
 
-Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定版本；本次没有创建 `.venv` 或安装软件。迁移环境如需安装，只允许在项目内 `.venv` 中按 requirements 安装，不得改全局 Python。PDF 解析说明见 `vault/00-System/PDF-Parsing-Guide.md`。
+Phase 2B 使用本机已有的 PyMuPDF 1.26.7，并在 `requirements.txt` 固定版本；本次没有创建 `.venv` 或安装软件。迁移环境如需安装，只允许在项目内 `.venv` 中按 requirements 安装，不得改全局 Python。PDF 解析说明见 `vault/00-系统维护/PDF-Parsing-Guide.md`。
 
-公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-System/Enhanced-Parsing-Guide.md`。
+公式增强器使用 `.venv/mineru`、项目内模型缓存和 `config/mineru-4.0.requirements.lock.txt`。安装时允许联网下载；日常推理强制使用本地模型并阻止 socket 连接。命令、模型身份、输出结构与限制见 `vault/00-系统维护/Enhanced-Parsing-Guide.md`。
 
-页级检索使用 Python 自带 SQLite FTS5，不需要大模型或网络服务。默认只查 accepted 页面；显式预览参数才能查看未审核基础/增强候选。索引位于被忽略的 `indexes/`，可从来源和派生文件重建。详见 `vault/00-System/Local-Retrieval-Guide.md`。
+页级检索使用 Python 自带 SQLite FTS5，不需要大模型或网络服务。默认只查 accepted 页面；显式预览参数才能查看未审核基础/增强候选。索引位于被忽略的 `indexes/`，可从来源和派生文件重建。详见 `vault/00-系统维护/Local-Retrieval-Guide.md`。
 
-人工接受使用不可覆盖快照和追加式审核事件。接受与撤销均默认 dry-run，只有显式 `--apply` 才写入；撤销保留历史快照。正式索引会核验来源、候选、快照和事件，不能仅靠修改 `review_status` 绕过。详见 `vault/00-System/Review-Acceptance-Guide.md`。
+人工接受使用不可覆盖快照和追加式审核事件。接受与撤销均默认 dry-run，只有显式 `--apply` 才写入；撤销保留历史快照。正式索引会核验来源、候选、快照和事件，不能仅靠修改 `review_status` 绕过。详见 `vault/00-系统维护/Review-Acceptance-Guide.md`。
 
-Claudian 试点规则位于 `vault/AGENTS.md`，使用说明见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。Claudian 的 Codex Provider 必须显式设置为 read-only；提供器请求会发送到 OpenAI，禁止把原始资料或未审核全文作为附件发送。
+Claudian 试点规则位于 `vault/AGENTS.md`，使用说明见 `vault/00-系统维护/Claudian-Study-Pilot-Guide.md`。Claudian 的 Codex Provider 必须显式设置为 read-only；提供器请求会发送到 OpenAI，禁止把原始资料或未审核全文作为附件发送。
 
 ## 目录用途
 
 | 目录 | 用途 |
 | --- | --- |
-| `vault/00-System` | 系统说明与学习导航 |
-| `vault/01-Math1/Calculus` | 高等数学 |
-| `vault/01-Math1/Linear-Algebra` | 线性代数 |
-| `vault/01-Math1/Probability` | 概率论与数理统计 |
-| `vault/02-408/Data-Structure` | 数据结构 |
-| `vault/02-408/Computer-Organization` | 计算机组成原理 |
-| `vault/02-408/Operating-System` | 操作系统 |
-| `vault/02-408/Computer-Network` | 计算机网络 |
-| `vault/03-Knowledge-Notes` | 跨章节知识笔记；`AI-Drafts` 仅存经明确请求生成的草稿 |
-| `vault/04-Mistakes` | 错题记录 |
-| `vault/05-Past-Papers` | 历年真题学习笔记 |
-| `vault/06-Stage-Tests` | 阶段测评记录 |
-| `vault/07-Weakness-Analysis` | 薄弱点分析 |
-| `vault/08-Study-Records` | 学习日志与复习记录 |
-| `vault/80-Attachments` | 笔记附件 |
+| `vault/00-系统维护` | 后台维护说明；日常学习无需逐项查看 |
+| `vault/01-数学一/高等数学` | 高等数学 |
+| `vault/01-数学一/线性代数` | 线性代数 |
+| `vault/01-数学一/概率论与数理统计` | 概率论与数理统计 |
+| `vault/02-408/数据结构` | 数据结构 |
+| `vault/02-408/计算机组成原理` | 计算机组成原理 |
+| `vault/02-408/操作系统` | 操作系统 |
+| `vault/02-408/计算机网络` | 计算机网络 |
+| `vault/03-知识笔记` | 跨章节知识笔记；`AI-草稿` 保留未来受控草稿位置 |
+| `vault/04-错题本` | 错题记录 |
+| `vault/05-历年真题` | 历年真题学习笔记 |
+| `vault/06-阶段测试` | 阶段测评记录 |
+| `vault/07-薄弱点` | 薄弱点分析 |
+| `vault/08-学习记录` | 学习日志与复习记录 |
+| `vault/80-附件` | 笔记附件 |
 | `vault/90-Parsed-Sources` | 派生的解析资料，非原件 |
-| `vault/99-Templates` | 笔记模板 |
+| `vault/99-笔记模板` | 笔记模板 |
 | `sources-original/math1`、`sources-original/408` | 永久只读的原始资料存放位置 |
 | `import-inbox` | 待用户确认的导入候选 |
 | `review-queue` | 待人工审核的产物 |
@@ -64,7 +64,7 @@ Git 只保存可复用的系统代码、测试、配置样例、系统文档、�
 
 在 Obsidian 中选择“打开文件夹作为仓库”，打开 `D:\Postgraduate-Study\vault`。Phase 3A 仅安装官方社区插件 Claudian；无需把整个项目作为 Obsidian 仓库。
 
-从 `00-System/Home.md` 开始，先读 `Metadata-Schema.md` 和 `Linking-Rules.md`。在 `99-Templates/Templates-MOC.md` 选择模板，手动复制到相应正式笔记目录；设置唯一 id，按实际情况填写，清除占位符后运行验证。导航页和模板不代表实际学习进度。详细检查范围和错误说明见 `00-System/Validation-Guide.md`。
+从 `学习主页.md` 开始。日常只需进入教材资料、日常辅导、知识笔记、错题本和学习记录；技术说明统一在 `00-系统维护/系统维护入口.md`。需要保存时，让只读助教输出完整 Markdown 草稿，再复制到 `03-知识笔记/` 或 `04-错题本/`。模板与导航不代表实际学习进度。
 
 在项目根目录 PowerShell 中执行：
 
@@ -128,7 +128,7 @@ py -3.12 -B scripts/pdf_parser.py report <source_id>
 
 工具不对派生正文做自动脱敏或改写。高置信疑似真实密钥会阻止整份产物发布，manifest 保持 `not_started`，并且只在 `review-queue/pdf-parse-blocks/` 记录无原文的错误码、页码和风险类型。`YOUR_API_KEY` 等占位符和普通代码示例保持原样。
 
-`verify-output` 核对来源哈希、PDF 页数、输出页数、逐页元数据、报告指标、PNG 资源、文件全集和内部链接，拒绝绝对/越界链接、未登记页面、未转义 LaTeX 与常见敏感模式。它检查结构一致性，不证明文字内容准确。详细流程、质量报告和首次真实验证建议见 `vault/00-System/PDF-Parsing-Guide.md`。
+`verify-output` 核对来源哈希、PDF 页数、输出页数、逐页元数据、报告指标、PNG 资源、文件全集和内部链接，拒绝绝对/越界链接、未登记页面、未转义 LaTeX 与常见敏感模式。它检查结构一致性，不证明文字内容准确。详细流程、质量报告和首次真实验证建议见 `vault/00-系统维护/PDF-Parsing-Guide.md`。
 
 Phase 2C 命令只读校验配置或从已验证的基础产物生成无正文路由计划：
 
@@ -138,7 +138,7 @@ py -3.12 -B scripts/parsing_architecture.py plan-source <source_id> --profile cs
 py -3.12 -B scripts/parsing_architecture.py verify-plan <source_id>
 ```
 
-三种档案、分层目录、状态机和未来 MinerU 接入边界见 `vault/00-System/Scalable-Parsing-Architecture.md`。
+三种档案、分层目录、状态机和未来 MinerU 接入边界见 `vault/00-系统维护/Scalable-Parsing-Architecture.md`。
 
 Phase 2D-0 在现有 manifest、路由计划和队列元数据上做 dry-run 规划：
 
@@ -151,7 +151,7 @@ py -3.12 -B scripts/parsing_architecture.py resume-check --source-id <source_id>
 py -3.12 -B scripts/parsing_architecture.py retry-page <source_id> <页码>
 ```
 
-`batch-plan` 默认只输出计划，`--save` 也只保存队列元数据，不启动解析。无任何筛选的全库计划必须额外给出 `--confirm-all-sources`。默认每批最多 25 页、并发 1，重型增强批次与基础批次严格分开。完整说明见 `vault/00-System/Batch-Parsing-Guide.md`。
+`batch-plan` 默认只输出计划，`--save` 也只保存队列元数据，不启动解析。无任何筛选的全库计划必须额外给出 `--confirm-all-sources`。默认每批最多 25 页、并发 1，重型增强批次与基础批次严格分开。完整说明见 `vault/00-系统维护/Batch-Parsing-Guide.md`。
 
 Phase 2E 的单页增强命令默认 dry-run，只处理已进入增强队列的页面：
 
@@ -187,7 +187,7 @@ py -3.12 -B scripts/validate_claudian_pilot.py check-policy
 py -3.12 -B scripts/validate_claudian_pilot.py run-pilot
 ```
 
-验证脚本不调用模型，只确认正式问答与候选预览的边界。UI 首次试问、预期回答、隐私边界和故障停止条件见 `vault/00-System/Claudian-Study-Pilot-Guide.md`。
+验证脚本不调用模型，只确认正式问答与候选预览的边界。UI 首次试问、预期回答、隐私边界和故障停止条件见 `vault/00-系统维护/Claudian-Study-Pilot-Guide.md`。
 
 ## Phase 3B 人工审核与接受门禁
 
