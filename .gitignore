@@ -79,11 +79,16 @@ api_cache/
 !/review-queue/enhanced-experiments/.gitkeep
 /review-queue/acceptance-events/*
 !/review-queue/acceptance-events/.gitkeep
+/review-queue/candidate-quarantine/*
+!/review-queue/candidate-quarantine/.gitkeep
 # Page-level review aids and corrected candidates contain parsed content; keep local.
 /review-queue/*.md
 
 # WorkBuddy assistant local state stays on this machine.
 /.workbuddy-ai/
+
+# Recoverable holding area for explicitly retired local runtime artifacts.
+/.cleanup-staging/
 
 # Real derived outputs remain local; keep only the system index and root anchor.
 /vault/90-Parsed-Sources/*
