@@ -95,6 +95,10 @@ api_cache/
 !/vault/90-Parsed-Sources/.gitkeep
 !/vault/90-Parsed-Sources/Parsed-Sources-MOC.md
 
+# Vault-local access copies let Obsidian/Claudian mention registered PDFs.
+# Canonical originals remain under sources-original and are verified by manifests.
+/vault/原始资料文件/**/*.pdf
+
 # Local models and caches never enter Git.
 /models/*
 !/models/.gitkeep
