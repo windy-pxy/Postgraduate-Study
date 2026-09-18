@@ -18,7 +18,7 @@
 | subject | 使用下表中的学科标识，与 course 匹配。 |
 | chapter | 字符串或空值；按真实资料章节填写，可写带引号的章节页双链，不猜测章号。 |
 | knowledge_points | 列表，元素为带引号的 Obsidian 双链；暂时没有已核实知识点时用 `[]`。 |
-| source_type | 字符串或空值；建议 textbook、wangdao、zhangyu、ppt、past-paper、self、other；这是建议词汇，不是强制枚举。 |
+| source_type | 字符串或空值；建议 textbook、wangdao、zhangyu、wuzhongxiang、ppt、past-paper、self、other；这是笔记建议词汇，导入工具使用更严格的固定枚举。 |
 | source_name | 资料真实名称及必要版次；无来源留空。 |
 | source_page | 原始资料印刷页码或幻灯片页号；无来源或未确认留空，不得编造。推荐带引号的字符串。 |
 | difficulty | 有依据时填 1～5 的整数，未知留空；不能用 0 或猜测分数。 |

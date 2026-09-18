@@ -43,7 +43,7 @@ ROUTING_QUEUE = 'review-queue/parsing-routing'
 JOB_QUEUE = 'review-queue/parsing-jobs'
 CHECKPOINT_QUEUE = 'review-queue/parsing-checkpoints'
 PARSER_IDS = {
-    'basic_pymupdf', 'enhanced_mineru_pipeline',
+    'basic_pymupdf', 'paddleocr_vl_local', 'enhanced_mineru_pipeline',
     'enhanced_docling_formula', 'optional_mathpix_formula_crop',
 }
 ROUTES = {
@@ -63,6 +63,19 @@ VALID_SOURCE_TYPES = {
     'textbook', 'wangdao', 'zhangyu', 'teacher-ppt', 'past-paper',
     'exercise', 'notes', 'other',
 }
+
+
+def enhanced_output_path(source_id, page_number, parser_id):
+    """Return the isolated candidate location for a routed enhanced parser."""
+    folders = {
+        'paddleocr_vl_local': 'paddleocr-vl',
+        'enhanced_mineru_pipeline': 'mineru',
+        'enhanced_docling_formula': 'docling',
+    }
+    if parser_id not in folders:
+        fail('PARSER_NOT_LOCAL_ENHANCED')
+    return (f'vault/90-Parsed-Sources/{source_id}/enhanced/{folders[parser_id]}/'
+            f'page-{page_number:04d}')
 METRIC_FIELDS = {
     'character_count', 'replacement_char_count', 'replacement_char_rate',
     'subscript_or_superscript_risk', 'formula_density', 'matrix_or_fraction_risk',
@@ -595,7 +608,8 @@ def validate_routing_plan(plan):
         enhanced = decision['enhanced_output_relative_path']
         if decision['route'] == 'enhanced_parse_queued':
             if (decision['preferred_enhanced_parser'] not in {
-                    'enhanced_mineru_pipeline', 'enhanced_docling_formula'}
+                    'paddleocr_vl_local', 'enhanced_mineru_pipeline',
+                    'enhanced_docling_formula'}
                     or not safe_relative(enhanced,
                         f'vault/90-Parsed-Sources/{sid}/enhanced')):
                 fail('ROUTING_PLAN_INVALID')
@@ -700,7 +714,8 @@ class RoutingPlanner:
                 },
                 'basic_output_relative_path': self.manager.relative(page_path),
                 'enhanced_output_relative_path': (
-                    f'vault/90-Parsed-Sources/{source_id}/enhanced/mineru/page-{page_number:04d}.json'
+                    enhanced_output_path(source_id, page_number,
+                                         profile['preferred_enhanced_parser'])
                     if route == 'enhanced_parse_queued' else None),
             })
         return validate_routing_plan({

@@ -35,6 +35,12 @@ except ModuleNotFoundError:
     EnhancedParser, EnhancedError = enhanced_module.EnhancedParser, enhanced_module.EnhancedError
 
 try:
+    from auto_parse import AutoParser, AutoParseError
+except ModuleNotFoundError:
+    auto_module = load_script('auto_parse_for_search')
+    AutoParser, AutoParseError = auto_module.AutoParser, auto_module.AutoParseError
+
+try:
     from review_manager import ReviewManager, ReviewError
 except ModuleNotFoundError:
     review_module = load_script('review_manager_for_search')
@@ -95,7 +101,9 @@ def frontmatter(text):
 
 
 def basic_text(text):
-    match = re.search(r'^```text\s*\n(.*?)\n```\s*$', text, re.MULTILINE | re.DOTALL)
+    match = re.search(
+        r'^```text[ \t]*\r?\n(.*?)\r?\n```[ \t]*$',
+        text, re.MULTILINE | re.DOTALL)
     if not match:
         fail('BASIC_PAGE_TEXT_INVALID')
     return match.group(1)
@@ -129,7 +137,8 @@ class LocalSearch:
     def _entry(self, record, page, version, parser_id, parser_version,
                review_status, relative, content, acceptance_event_id=None):
         if (type(page) is not int or page < 1 or version not in {'accepted', 'basic', 'enhanced'}
-                or review_status not in {'accepted', 'review_required'}
+                or review_status not in {'accepted', 'review_required',
+                    'machine_checked_candidate', 'sample_review', 'exception_review'}
                 or (version == 'accepted') != bool(acceptance_event_id)
                 or not safe_relative(relative, f'vault/90-Parsed-Sources/{record["source_id"]}')):
             fail('INDEX_ENTRY_INVALID')
@@ -171,6 +180,8 @@ class LocalSearch:
                     or metadata.get('derived') is not True
                     or metadata.get('review_status') != 'review_required'):
                 fail('BASIC_PAGE_METADATA_INVALID')
+            if metadata.get('parse_status') == 'empty':
+                continue
             content = basic_text(raw)
             entries.append(self._entry(
                 record, page, 'basic', record['parser_name'], record['parser_version'],
@@ -178,26 +189,37 @@ class LocalSearch:
         return entries
 
     def _enhanced(self, record):
-        folder = self.manager.path(
-            f'vault/90-Parsed-Sources/{record["source_id"]}/enhanced/mineru',
-            f'vault/90-Parsed-Sources/{record["source_id"]}')
-        if not folder.is_dir():
-            return []
-        verifier = EnhancedParser(self.root)
         entries = []
-        for candidate in sorted(folder.iterdir()):
-            match = ENHANCED_PAGE_NAME.fullmatch(candidate.name)
-            if not match:
-                if candidate.name.startswith('.tmp-page-'):
-                    continue
-                fail('ENHANCED_DIRECTORY_INVALID')
-            page = int(match.group(1))
-            verifier.verify_output(record['source_id'], page)
-            metadata = json.loads((candidate / 'candidate-manifest.json').read_text('utf-8'))
-            content_path = candidate / 'mineru.md'; content = content_path.read_text('utf-8')
-            entries.append(self._entry(
-                record, page, 'enhanced', metadata['parser_id'], metadata['parser_version'],
-                'review_required', content_path.relative_to(self.root).as_posix(), content))
+        engines = (
+            ('mineru', 'mineru.md', EnhancedParser),
+            ('paddleocr-vl', 'paddleocr.md', AutoParser),
+        )
+        for engine, markdown_name, verifier_type in engines:
+            folder = self.manager.path(
+                f'vault/90-Parsed-Sources/{record["source_id"]}/enhanced/{engine}',
+                f'vault/90-Parsed-Sources/{record["source_id"]}')
+            if not folder.is_dir():
+                continue
+            verifier = verifier_type(self.root)
+            for candidate in sorted(folder.iterdir()):
+                match = ENHANCED_PAGE_NAME.fullmatch(candidate.name)
+                if not match:
+                    if candidate.name.startswith('.tmp-page-'):
+                        continue
+                    fail('ENHANCED_DIRECTORY_INVALID')
+                page = int(match.group(1))
+                try:
+                    verifier.verify_output(record['source_id'], page)
+                except (EnhancedError, AutoParseError):
+                    fail('ENHANCED_CANDIDATE_INVALID')
+                metadata = json.loads((candidate / 'candidate-manifest.json').read_text('utf-8'))
+                content_path = candidate / markdown_name
+                content = content_path.read_text('utf-8')
+                review_status = metadata.get(
+                    'review_status', 'review_required' if engine == 'mineru' else None)
+                entries.append(self._entry(
+                    record, page, 'enhanced', metadata['parser_id'], metadata['parser_version'],
+                    review_status, content_path.relative_to(self.root).as_posix(), content))
         return entries
 
     def collect(self, include_review_candidates=False):
@@ -339,7 +361,9 @@ class LocalSearch:
             results.append({
                 'source_id': row[0], 'source_sha256': row[1], 'page_number': row[2],
                 'version_kind': row[3], 'parser_id': row[4], 'parser_version': row[5],
-                'review_status': row[6], 'risk': None if row[6] == 'accepted' else 'UNREVIEWED_CANDIDATE',
+                'review_status': row[6], 'risk': None if row[6] == 'accepted' else (
+                    'MACHINE_CHECKED_CANDIDATE' if row[6] == 'machine_checked_candidate'
+                    else 'UNREVIEWED_CANDIDATE'),
                 'snippet': snippet(row[9], query), 'relative_path': relative,
                 'source_pdf_relative_path': row[8],
                 'acceptance_event_id': row[10],
@@ -409,7 +433,8 @@ class LocalSearch:
             if source_id not in records or records[source_id]['sha256'] != source_hash:
                 fail('INDEX_SOURCE_MISMATCH')
             if (source_relative != records[source_id]['stored_relative_path']
-                    or review_status not in {'accepted', 'review_required'}
+                    or review_status not in {'accepted', 'review_required',
+                        'machine_checked_candidate', 'sample_review', 'exception_review'}
                     or version not in {'accepted', 'basic', 'enhanced'}
                     or (review_status == 'accepted') != (version == 'accepted')
                     or (version == 'accepted') != bool(acceptance_event_id)

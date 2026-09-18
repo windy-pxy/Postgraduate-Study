@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "parser_id": "paddleocr_vl_local",
+  "parser_version": "3.7.0",
+  "pipeline_version": "v1.6",
+  "environment_relative_path": ".venv/paddleocr-vl",
+  "worker_relative_path": "scripts/paddleocr_worker.py",
+  "model_cache_relative_path": "models/cache/paddleocr",
+  "layout_model_relative_path": "models/cache/paddleocr/official_models/PP-DocLayoutV3",
+  "vl_model_relative_path": "models/cache/paddleocr/official_models/PaddleOCR-VL-1.6",
+  "device": "gpu:0",
+  "network_policy": "local_models_and_socket_blocking",
+  "max_pages_per_batch": 25,
+  "concurrency": 1,
+  "sample_review_percent": 2,
+  "critical_model_files": [
+    {
+      "relative_path": "models/cache/paddleocr/official_models/PaddleOCR-VL-1.6/model.safetensors",
+      "sha256": "85a479d506a11e724e7285d395c551be69f41dbc16b6342d3cacfb189aed71db"
+    },
+    {
+      "relative_path": "models/cache/paddleocr/official_models/PP-DocLayoutV3/inference.pdiparams",
+      "sha256": "70bd316b0582769ec968829fd1feb1a6a58b7c941b938327e551b6b12b45c137"
+    }
+  ],
+  "quality_thresholds": {
+    "minimum_characters": 40,
+    "minimum_basic_coverage_ratio": 0.45,
+    "maximum_basic_expansion_ratio": 3.5,
+    "minimum_question_number_recall": 0.9
+  }
+}

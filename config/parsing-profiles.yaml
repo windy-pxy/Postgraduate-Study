@@ -5,6 +5,10 @@ parser_catalog:
     implementation_status: active
     parser_mode: local_basic_text
     network_allowed: false
+  paddleocr_vl_local:
+    implementation_status: active
+    parser_mode: local_formula_layout_enhanced
+    network_allowed: false
   enhanced_mineru_pipeline:
     implementation_status: interface_only
     parser_mode: local_formula_layout_enhanced
@@ -22,7 +26,7 @@ profiles:
   math1_formula_dense:
     course: math1
     subjects: [calculus, linear-algebra, probability]
-    preferred_enhanced_parser: enhanced_mineru_pipeline
+    preferred_enhanced_parser: paddleocr_vl_local
     fallback_enhanced_parser: enhanced_docling_formula
     thresholds:
       replacement_char_count: 1
@@ -41,7 +45,7 @@ profiles:
   cs408_general:
     course: "408"
     subjects: [data-structure, computer-organization, operating-system, computer-network]
-    preferred_enhanced_parser: enhanced_mineru_pipeline
+    preferred_enhanced_parser: paddleocr_vl_local
     fallback_enhanced_parser: enhanced_docling_formula
     thresholds:
       replacement_char_count: 2
@@ -60,7 +64,7 @@ profiles:
   cs408_symbol_dense:
     course: "408"
     subjects: [computer-organization, data-structure]
-    preferred_enhanced_parser: enhanced_mineru_pipeline
+    preferred_enhanced_parser: paddleocr_vl_local
     fallback_enhanced_parser: enhanced_docling_formula
     thresholds:
       replacement_char_count: 1

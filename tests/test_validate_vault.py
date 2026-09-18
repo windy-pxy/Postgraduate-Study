@@ -240,6 +240,8 @@ class IgnoreRuleTests(unittest.TestCase):
             'config/parsing-profiles.yaml', 'config/resource-limits.yaml',
             'config/enhanced-parser.example.json', 'config/mineru-4.0.requirements.lock.txt',
             'scripts/enhanced_parser.py', 'scripts/enhanced_worker.py',
+            'config/auto-parsing.example.json', 'scripts/auto_parse.py',
+            'scripts/paddleocr_worker.py', 'config/paddleocr-vl.requirements.lock.txt',
             'vault/00-系统维护/Enhanced-Parsing-Guide.md',
             'vault/00-系统维护/Local-Retrieval-Guide.md', 'scripts/local_search.py',
             'vault/00-系统维护/Review-Acceptance-Guide.md', 'scripts/review_manager.py',

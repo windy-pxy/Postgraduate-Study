@@ -113,6 +113,13 @@ class ArchitectureTests(unittest.TestCase):
         with self.assertRaisesRegex(arch.ArchitectureError, 'LIMIT_PATH_INVALID'):
             arch.validate_limits(changed, ROOT)
 
+    def test_profiles_route_enhanced_pages_to_isolated_paddle_candidates(self):
+        for profile in self.profiles['profiles'].values():
+            self.assertEqual(profile['preferred_enhanced_parser'], 'paddleocr_vl_local')
+        self.assertEqual(
+            arch.enhanced_output_path('src-aaaaaaaaaaaa', 7, 'paddleocr_vl_local'),
+            'vault/90-Parsed-Sources/src-aaaaaaaaaaaa/enhanced/paddleocr-vl/page-0007')
+
     def test_profile_config_rejects_network_cloud_and_duplicate_key(self):
         changed = json.loads(json.dumps(self.profiles))
         changed['parser_catalog']['optional_mathpix_formula_crop']['network_allowed'] = True

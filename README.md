@@ -164,6 +164,20 @@ py -3.12 -B scripts/enhanced_parser.py verify-output <source_id> <页码>
 
 目标存在时拒绝覆盖。增强候选包含原页预览、模型 Markdown、结构化结果、运行指标、候选清单和审核清单；真实产物继续被 Git 忽略。
 
+公式增强的对照评估已选择本地 PaddleOCR-VL 1.6 作为主方案；MinerU 4.0 仅保留作对照诊断。自动流程仍按单页和并发 1 运行，默认 dry-run：
+
+```powershell
+py -3.12 -B scripts/auto_parse.py model-status
+py -3.12 -B scripts/auto_parse.py inspect <source_id> <页码>
+py -3.12 -B scripts/auto_parse.py parse <source_id> <页码>
+py -3.12 -B scripts/auto_parse.py parse <source_id> <页码> --apply
+py -3.12 -B scripts/auto_parse.py batch <source_id> --pages 1-25
+py -3.12 -B scripts/auto_parse.py verify-output <source_id> <页码>
+py -3.12 -B scripts/auto_parse.py status <source_id>
+```
+
+`batch` 不带 `--apply` 时只预演。机器质量门会检查替换字符、公式括号、文本覆盖、题号、路径和敏感模式；正常页成为 `machine_checked_candidate`，固定抽样页为 `sample_review`，异常页为 `exception_review`。三者都是派生候选，只有 Phase 3B 显式人工 `accept --apply` 才能进入正式检索。
+
 Phase 3 最小本地检索闭环：
 
 ```powershell

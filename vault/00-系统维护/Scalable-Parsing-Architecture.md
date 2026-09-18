@@ -22,8 +22,9 @@
 
 所有适配器统一返回 parser_id、parser_version、parser_mode、page_number、text、formula_candidates、image_candidates、layout_warnings、extraction_metrics、review_status 和 output_relative_path。
 
-- `basic_pymupdf`：当前唯一实现，只读处理单页。
-- `enhanced_mineru_standard`：已实现的单页本地增强器；使用 ONNX 与 llama.cpp，输出待审核候选，绝不覆盖基础结果。
+- `basic_pymupdf`：基础文字层解析器，只读处理页面。
+- `paddleocr_vl_local`：当前主增强解析器；只接收本地页面 PNG，以 GPU 单页运行，输出机器检查候选。
+- `enhanced_mineru_standard`：保留的本地对照解析器；不再作为自动路由首选。
 - `enhanced_docling_formula`：接口占位，当前调用会明确返回未安装。
 - `optional_mathpix_formula_crop`：未来可选云端裁剪兜底，默认禁用网络；必须另行明确授权。
 
@@ -38,6 +39,7 @@ vault/90-Parsed-Sources/<source_id>/
 ├─ basic/
 ├─ enhanced/
 │  ├─ mineru/
+│  ├─ paddleocr-vl/
 │  └─ docling/
 ├─ annotations/
 │  ├─ formula-corrections.md
@@ -105,8 +107,8 @@ stateDiagram-v2
 
 只有增强候选仍无法还原符号、公式语义无法确认或阅读顺序需要原页判断时，才建立人工修正注释。修正必须引用 source_id、原始页码、页面预览和修改理由；不能直接编辑基础结果或增强候选。
 
-## MinerU 本地接入
+## 当前本地增强接入
 
-MinerU 4.0.0 已按上述边界接入：版本、模型 revision 和关键文件哈希固定在配置样例，独立虚拟环境和全部缓存位于项目内。适配器只处理路由确认的单页，并把真实候选写入被忽略的 `enhanced/mineru/page-XXXX/`；Phase 2B 基础产物与来源 manifest 身份不变。具体命令和人工审核方法见 [[00-系统维护/Enhanced-Parsing-Guide|本地公式增强解析指南]]。
+PaddleOCR-VL 1.6 已按上述边界接入：依赖锁定在独立项目环境，模型缓存和关键文件哈希位于项目内配置。自动路由首选它，并把结果写入被忽略的 `enhanced/paddleocr-vl/page-XXXX/`。机器检查通过只表示候选结构可用；固定抽样与异常页仍进入复核，任何页面都不会自动成为 accepted。MinerU 4.0.0 保留在独立环境中供对照，不覆盖其已有候选。具体命令见 [[00-系统维护/Enhanced-Parsing-Guide|本地公式增强解析指南]]。
 
 入口：[[学习主页|首页]] · [[00-系统维护/PDF-Parsing-Guide|PDF 解析指南]] · [[00-系统维护/Validation-Guide|验证说明]]

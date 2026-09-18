@@ -23,7 +23,7 @@ Phase 2A 导入基础设施已验收并提交；当前 Phase 2B 已建立数字�
 | math1 | calculus、linear-algebra、probability |
 | 408 | data-structure、computer-organization、operating-system、computer-network |
 
-source_type 只能是 textbook、wangdao、zhangyu、teacher-ppt、past-paper、exercise、notes、other。不要根据资料文件名猜测版本、科目或类别。当前工具不实现自动分类；缺少分类时保存为待审核计划，suggested 字段为空并标注未推断，不会成为正式来源分类。
+source_type 只能是 textbook、wangdao、zhangyu、wuzhongxiang、teacher-ppt、past-paper、exercise、notes、other。不要根据资料文件名猜测版本、科目或类别。当前工具不实现自动分类；缺少分类时保存为待审核计划，suggested 字段为空并标注未推断，不会成为正式来源分类。
 
 注意：Phase 1 笔记的 subject 使用 Calculus 等首字母大写标识；本阶段导入清单按上表使用小写。两套字段属于不同数据对象，暂不自动转换或生成笔记。
 

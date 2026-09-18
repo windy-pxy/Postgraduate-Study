@@ -74,6 +74,25 @@ class ReviewManagerTests(unittest.TestCase):
         self.assertEqual(before, after)
         self.assertFalse(list((self.root / 'review-queue/acceptance-events').glob('*.json')))
 
+    def test_paddle_machine_candidate_requires_explicit_accept(self):
+        relative = (f'vault/90-Parsed-Sources/{self.sid}/enhanced/paddleocr-vl/'
+                    'page-0001')
+        folder = self.root / relative
+        folder.mkdir(parents=True)
+        (folder / 'paddleocr.md').write_text('合成候选 $x_{1}$', encoding='utf-8')
+        (folder / 'candidate-manifest.json').write_text(json.dumps({
+            'source_id': self.sid, 'source_page': 1,
+            'review_status': 'machine_checked_candidate', 'candidate_only': True,
+            'parser_id': 'paddleocr_vl_local', 'parser_version': '3.7.0',
+        }), encoding='utf-8')
+        candidate = relative + '/paddleocr.md'
+        with self.source_context():
+            preview = self.manager.accept(
+                self.sid, 1, candidate, 'tester', 'synthetic explicit review')
+        self.assertFalse(preview['apply'])
+        self.assertEqual(preview['candidate_kind'], 'enhanced')
+        self.assertFalse(list((self.root / 'review-queue/acceptance-events').glob('*.json')))
+
     def test_apply_creates_immutable_snapshot_and_trace_event(self):
         result = self.accept()
         snapshot = self.root / result['snapshot_relative_path']
@@ -107,6 +126,19 @@ class ReviewManagerTests(unittest.TestCase):
             with self.assertRaisesRegex(review.ReviewError, 'SOURCE_INTEGRITY_FAILED'):
                 self.manager.accept(
                     self.sid, 1, 'review-queue/corrected.md', 'tester', 'notes')
+
+    def test_status_skips_registered_sources_not_yet_parsed(self):
+        waiting = {
+            **self.record, 'source_id': 'src-bbbbbbbbbbbb',
+            'sha256': 'b' * 64, 'parser_status': 'not_started',
+            'parser_name': None, 'parser_version': None, 'page_count': None,
+        }
+        with patch.object(self.manager.manager, 'verify', return_value={'ok': True}), \
+             patch.object(self.manager.manager, 'manifests', return_value=(
+                 {self.sid: self.record, waiting['source_id']: waiting}, [])):
+            result = self.manager.status()
+        self.assertTrue(result['ok'])
+        self.assertEqual(result['active_accepted_count'], 0)
 
     def test_revoke_is_append_only_and_preserves_snapshot(self):
         accepted = self.accept(); snapshot = self.root / accepted['snapshot_relative_path']

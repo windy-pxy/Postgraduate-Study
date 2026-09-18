@@ -58,4 +58,25 @@ MinerU 能恢复部分上下标、分式、根号、积分和表格结构，但�
 
 模型冷启动和页面推理需要数秒到数十秒。资源指标属于运行时观测值，系统可用内存变化包含同期其他进程；单个 worker 进程内存不代表全部子进程。异常页逐页处理仍是默认策略。
 
+## 自动增强主流程
+
+对照评估后，PaddleOCR-VL 1.6 成为主增强器。环境位于项目内 `.venv/paddleocr-vl`，模型位于 `models/cache/paddleocr`；worker 只接收本地渲染 PNG，并在推理时阻止 socket 连接。关键模型文件的 SHA-256 用于检查本地文件是否改变，不代表官方签名。
+
+```powershell
+py -3.12 -B scripts/auto_parse.py model-status
+py -3.12 -B scripts/auto_parse.py inspect <source_id> <页码>
+py -3.12 -B scripts/auto_parse.py parse <source_id> <页码>
+py -3.12 -B scripts/auto_parse.py parse <source_id> <页码> --apply
+py -3.12 -B scripts/auto_parse.py batch <source_id> --pages 1-25
+py -3.12 -B scripts/auto_parse.py verify-output <source_id> <页码>
+```
+
+`parse` 和 `batch` 默认 dry-run。正式运行前重新检查来源 SHA-256 与该页路由；输出目标存在时拒绝覆盖。单页输出包含原页预览、Markdown、结构化结果、worker 报告、质量报告、候选清单和复核说明。
+
+自动质量门检查最小正文、替换字符、公式分隔符和括号、基础文本覆盖比例、题号召回、路径与敏感模式。通过后标记 `machine_checked_candidate`；固定 2% 抽样标记 `sample_review`；规则异常标记 `exception_review`。这些状态都不是人工接受，不会进入正式检索。需要扩大资料规模时，只检查异常页和抽样页，无需逐页审核全部候选。
+
+真实对照仍发现难以用规则发现的语义替换，例如双曲函数被误成三角函数、下标变量改变、矩阵维数变化。机器通过只能减少人工工作量，不能证明公式正确。MinerU 结果保留作少数页面对照，不自动作为回退，也不与 PaddleOCR-VL 并发批量运行。
+
+当前 Paddle 运行会报告编译 cuDNN 版本与可用 cuDNN 版本不同的警告；合成和真实单页推理均已完成，但扩大批次前应继续观察稳定性。若出现 GPU 初始化失败或 OOM，应停止该批，不把失败候选标记为成功。
+
 入口：[[00-系统维护/PDF-Parsing-Guide|PDF 解析指南]] · [[00-系统维护/Scalable-Parsing-Architecture|可扩展解析架构]] · [[00-系统维护/Validation-Guide|验证说明]]

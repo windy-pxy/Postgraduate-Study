@@ -23,7 +23,8 @@ SUBJECTS = {
     'math1': {'calculus', 'linear-algebra', 'probability'},
     '408': {'data-structure', 'computer-organization', 'operating-system', 'computer-network'},
 }
-SOURCE_TYPES = {'textbook', 'wangdao', 'zhangyu', 'teacher-ppt', 'past-paper', 'exercise', 'notes', 'other'}
+SOURCE_TYPES = {'textbook', 'wangdao', 'zhangyu', 'wuzhongxiang', 'teacher-ppt',
+                'past-paper', 'exercise', 'notes', 'other'}
 FORMATS = {'pdf', 'pptx', 'docx'}
 BASELINE = 'config/sources-original.baseline.json'
 MANIFESTS = 'config/source-manifests'

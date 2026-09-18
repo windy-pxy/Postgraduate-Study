@@ -59,12 +59,25 @@ class LocalSearchTests(unittest.TestCase):
         basic.write_text(
             f'---\nsource_id: "{self.sid}"\nsource_page: 2\nderived: true\n'
             'parse_status: "extracted"\nreview_status: "review_required"\n---\n'
-            '```text\n补码基础候选 x1\n```\n', encoding='utf-8')
+            '```text\n补码基础候选 x1\n```\n\n'
+            '## 公式或图形复核\n\n- status: needs_formula_review\n',
+            encoding='utf-8')
         enhanced = self.root / f'vault/90-Parsed-Sources/{self.sid}/enhanced/mineru/page-0002'
         enhanced.mkdir(parents=True)
         (enhanced / 'mineru.md').write_text('补码增强候选 $x_1$', encoding='utf-8')
         (enhanced / 'candidate-manifest.json').write_text(json.dumps({
             'parser_id': 'enhanced_mineru_standard', 'parser_version': '4.0.0'}), encoding='utf-8')
+
+    def paddle_candidate(self):
+        enhanced = self.root / (
+            f'vault/90-Parsed-Sources/{self.sid}/enhanced/paddleocr-vl/page-0002')
+        enhanced.mkdir(parents=True)
+        (enhanced / 'paddleocr.md').write_text(
+            '补码自动增强候选 $[x]_{补}$', encoding='utf-8')
+        (enhanced / 'candidate-manifest.json').write_text(json.dumps({
+            'source_id': self.sid, 'source_page': 2,
+            'parser_id': 'paddleocr_vl_local', 'parser_version': '3.7.0',
+            'review_status': 'machine_checked_candidate'}), encoding='utf-8')
 
     def context(self):
         return patch.multiple(
@@ -131,6 +144,26 @@ class LocalSearchTests(unittest.TestCase):
         self.assertTrue(all(item['risk'] == 'UNREVIEWED_CANDIDATE' for item in result['results']))
         self.assertEqual({item['parser_id'] for item in result['results']},
                          {'pymupdf-basic-text', 'enhanced_mineru_standard'})
+
+    def test_paddle_machine_candidate_is_preview_only_and_risk_labeled(self):
+        self.paddle_candidate()
+        with patch.object(search, 'AutoParser') as verifier:
+            verifier.return_value.verify_output.return_value = {'ok': True}
+            self.build_with_records(include_review_candidates=True)
+        result = self.search_with_records('补码', include_review_candidates=True)
+        self.assertEqual(len(result['results']), 1)
+        self.assertEqual(result['results'][0]['parser_id'], 'paddleocr_vl_local')
+        self.assertEqual(result['results'][0]['risk'], 'MACHINE_CHECKED_CANDIDATE')
+
+    def test_empty_basic_page_is_not_indexed_as_searchable_content(self):
+        page = self.root / f'vault/90-Parsed-Sources/{self.sid}/pages/page-0001.md'
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(
+            f'---\nsource_id: "{self.sid}"\nsource_page: 1\nderived: true\n'
+            'parse_status: "empty"\nreview_status: "review_required"\n---\n'
+            '# 原始页码 1\n\n本页未提取到可见文本。\n', encoding='utf-8')
+        result = self.build_with_records(include_review_candidates=True)
+        self.assertEqual(result['review_candidate_count'], 0)
 
     def test_source_page_filters_and_short_keyword_fallback(self):
         self.accepted(1, '页一 AI'); self.accepted(2, '页二 AI')

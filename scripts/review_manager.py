@@ -86,7 +86,9 @@ def frontmatter(text, code='CANDIDATE_FRONTMATTER_INVALID'):
 
 
 def basic_text(text):
-    match = re.search(r'^```text\s*\n(.*?)\n```\s*$', text, re.MULTILINE | re.DOTALL)
+    match = re.search(
+        r'^```text[ \t]*\r?\n(.*?)\r?\n```[ \t]*$',
+        text, re.MULTILINE | re.DOTALL)
     if not match:
         fail('BASIC_PAGE_TEXT_INVALID')
     return match.group(1)
@@ -146,6 +148,8 @@ class ReviewManager:
         basic = f'vault/90-Parsed-Sources/{sid}/pages/page-{page:04d}.md'
         enhanced = (f'vault/90-Parsed-Sources/{sid}/enhanced/mineru/'
                     f'page-{page:04d}/mineru.md')
+        paddle = (f'vault/90-Parsed-Sources/{sid}/enhanced/paddleocr-vl/'
+                  f'page-{page:04d}/paddleocr.md')
         if relative == basic:
             metadata, _ = frontmatter(text)
             if (metadata.get('source_id') != sid or metadata.get('source_page') != page
@@ -155,11 +159,13 @@ class ReviewManager:
             content = basic_text(text)
             parser_id, parser_version, kind = (
                 record['parser_name'], record['parser_version'], 'basic')
-        elif relative == enhanced:
+        elif relative in {enhanced, paddle}:
             manifest_relative = str(PurePosixPath(relative).parent / 'candidate-manifest.json')
             manifest = self._json(manifest_relative)
             if (manifest.get('source_id') != sid or manifest.get('source_page') != page
-                    or manifest.get('review_status') != 'review_required'
+                    or manifest.get('review_status') not in {
+                        'review_required', 'machine_checked_candidate',
+                        'sample_review', 'exception_review'}
                     or manifest.get('candidate_only') is not True
                     or not isinstance(manifest.get('parser_id'), str)
                     or not isinstance(manifest.get('parser_version'), str)):
@@ -201,6 +207,7 @@ class ReviewManager:
         paths = [
             f'vault/90-Parsed-Sources/{sid}/pages/page-{page:04d}.md',
             f'vault/90-Parsed-Sources/{sid}/enhanced/mineru/page-{page:04d}/mineru.md',
+            f'vault/90-Parsed-Sources/{sid}/enhanced/paddleocr-vl/page-{page:04d}/paddleocr.md',
         ]
         review_root = self.manager.path('review-queue', 'review-queue')
         if review_root.is_dir():
@@ -511,7 +518,10 @@ class ReviewManager:
         try:
             records = self._records()
             for record in records.values():
-                for page in range(1, record.get('page_count', 0) + 1):
+                page_count = record.get('page_count')
+                if type(page_count) is not int:
+                    continue
+                for page in range(1, page_count + 1):
                     candidate_count += len(self._candidate_paths(record, page))
         except (ReviewError, SourceError, OSError):
             if verification.get('ok'):

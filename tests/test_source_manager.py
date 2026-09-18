@@ -187,6 +187,10 @@ class SourceTests(unittest.TestCase):
                        ('math1', 'calculus', 'bad'), ('408', 'calculus', 'textbook')):
             with self.assertRaises(sm.SourceError):
                 self.manager.plan(path, *values)
+        plan = self.manager.plan(
+            path, course='math1', subject='calculus',
+            source_type='wuzhongxiang')
+        self.assertEqual(plan['plan']['classification']['source_type'], 'wuzhongxiang')
 
     def test_unconfirmed_plan_goes_to_review(self):
         result = self.manager.plan(self.put(), save=True)

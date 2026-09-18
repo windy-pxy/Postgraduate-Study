@@ -26,10 +26,10 @@
 22. 解析正文必须忠实保留，不得自动删除、替换或脱敏后发布。高置信疑似真实密钥必须阻止整份产物发布，只记录固定错误码、页码和风险类型，不回显原文；`YOUR_API_KEY` 等占位符与普通代码示例不得被改写。
 23. Phase 2C 基础结果、增强候选、人工注释和已接受结果必须分层保存。增强解析器不得覆盖基础页；旧结果和状态事件不得改写来掩盖错误。`accepted/` 只能经明确审核或未来已批准的受控规则生成。
 24. 重型解析器只处理质量异常页，默认单任务、单页重试、逐页断点；一页失败不得触发整份资料重解析。每页必须记录 source_id、原页码、解析器/版本、质量分数、路由原因和审核状态。
-25. MinerU 4.0 Standard 本地适配器已启用，固定使用项目 `.venv/mineru` 与 `models/cache`，并发 1、每次 1 页；正常推理必须离线并阻止 socket 连接。Docling 和 Mathpix 仍不可调用，云端识别默认禁用。模型哈希只用于本地完整性检查，不是官方真实性证明。
+25. PaddleOCR-VL 1.6 是当前公式增强主解析器，固定使用项目 `.venv/paddleocr-vl` 与 `models/cache/paddleocr`，并发 1；输入只允许本地渲染 PNG，worker 必须阻止 socket 连接。MinerU 4.0 Standard 只保留为对照诊断，Docling 和 Mathpix 仍不可调用，云端识别默认禁用。模型哈希只用于本地完整性检查，不是官方真实性证明。
 26. Git 只跟踪系统代码、测试、配置样例、文档、模板和用户正式笔记。真实原件、inbox 文件、来源 manifest、真实 SHA-256 基线、导入/路由计划、解析产物、运行队列、日志和模型缓存必须保留本地并忽略。`config/sources-original.baseline.example.json` 仅为空样例；真实基线仍位于原路径供校验器读取，不得用样例替代或重建来掩盖异常。
 27. Phase 2D-0 只允许读取已确认 manifest、质量路由和本地队列来生成批次计划与资源估算。默认每批最多 25 页、并发 1；重型增强任务不得与普通批次并发。无筛选的全库计划必须显式确认，计划和重试命令不得调用解析器，未确认 inbox 文件不得进入队列。
-28. 增强解析只接受完整性通过、已登记且路由为 `enhanced_parse_queued` 的单页。增强结果写入新的 `enhanced/mineru/page-XXXX/` 候选目录，必须保持 `derived`、`candidate_only` 和 `review_required`；不得覆盖基础结果、重复解析已有目标或自动生成 accepted 内容。
+28. 增强解析只接受完整性通过、已登记且路由为 `enhanced_parse_queued` 的单页。PaddleOCR-VL 增强结果写入新的 `enhanced/paddleocr-vl/page-XXXX/` 候选目录；机器质量门只允许 `machine_checked_candidate`、`sample_review` 或 `exception_review`，均不得被视为人工接受。不得覆盖基础结果、重复解析已有目标或自动生成 accepted 内容。
 29. 本地检索默认只使用明确人工接受的 `accepted/pages/page-XXXX.md`。待审核基础/增强候选仅可经显式预览选项加入索引和查询，必须显示风险与解析版本；不得生成答案或把同页多个版本无标识合并。SQLite 索引可重建但不进入 Git。
 30. Claudian 使用 `vault/AGENTS.md` 中的 `study_readonly_pilot` 规则。必须在 Claudian 设置中选择 Codex、Native Windows、Normal/Safe 权限与 `read-only`；不得使用 YOLO、workspace-write、MCP、子代理或自动编辑。严格资料查询只引用 accepted 内容；用户明确指定候选用于日常辅导时必须标注待审核、来源 ID、页码和解析器版本。Claudian 仅可在 vault 内列目录、搜索和读取文件，不得执行项目脚本、写入型或网络命令，不得自行接受候选、下载依赖或创建文件；保存请求只在聊天中生成可复制 Markdown，不切换写入权限。
 31. accepted 内容必须由 Phase 3B 审核工具通过显式 `accept --apply` 新建不可覆盖快照和接受事件；仅修改 frontmatter 不构成有效接受。接受与撤销默认 dry-run，撤销只追加事件并保留历史快照。正式索引必须核验原件、候选、快照、接受事件和撤销状态；审核状态变化后旧索引必须拒绝查询，不能自动接受、覆盖或删除历史。

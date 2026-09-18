@@ -354,6 +354,12 @@ def validate_project(root):
         enhanced_module = importlib.util.module_from_spec(enhanced_spec)
         enhanced_spec.loader.exec_module(enhanced_module)
         enhanced_parser = enhanced_module.EnhancedParser(root)
+        path_metadata(root / 'scripts/auto_parse.py')
+        auto_spec = importlib.util.spec_from_file_location(
+            'auto_parse_vault', root / 'scripts/auto_parse.py')
+        auto_module = importlib.util.module_from_spec(auto_spec)
+        auto_spec.loader.exec_module(auto_module)
+        auto_parser = auto_module.AutoParser(root)
         parsed_ids = []
         for name, entry in inventory.items():
             parts = PurePosixPath(name).parts
@@ -385,6 +391,23 @@ def validate_project(root):
                             OSError, ValueError, TypeError, KeyError):
                         issues.append((
                             f'90-Parsed-Sources/{source_id}/enhanced/mineru/{candidate.name}',
+                            'ENHANCED_OUTPUT_INVALID', ''))
+            paddle_root = root / 'vault/90-Parsed-Sources' / source_id / 'enhanced/paddleocr-vl'
+            if paddle_root.is_dir():
+                for candidate in sorted(paddle_root.iterdir()):
+                    match = re.fullmatch(r'page-(\d{4})', candidate.name)
+                    if not match or not candidate.is_dir():
+                        if not candidate.name.startswith('.tmp-page-'):
+                            issues.append((
+                                f'90-Parsed-Sources/{source_id}/enhanced/paddleocr-vl/{candidate.name}',
+                                'ENHANCED_OUTPUT_INVALID', ''))
+                        continue
+                    try:
+                        auto_parser.verify_output(source_id, int(match.group(1)))
+                    except (auto_module.AutoParseError, module.SourceError,
+                            OSError, ValueError, TypeError, KeyError):
+                        issues.append((
+                            f'90-Parsed-Sources/{source_id}/enhanced/paddleocr-vl/{candidate.name}',
                             'ENHANCED_OUTPUT_INVALID', ''))
         assets = {name for name, entry in inventory.items() if entry['kind'] == 'file'}
         documents = {}
