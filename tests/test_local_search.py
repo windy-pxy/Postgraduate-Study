@@ -155,6 +155,16 @@ class LocalSearchTests(unittest.TestCase):
         self.assertEqual(result['results'][0]['parser_id'], 'paddleocr_vl_local')
         self.assertEqual(result['results'][0]['risk'], 'MACHINE_CHECKED_CANDIDATE')
 
+    def test_invalid_paddle_candidate_is_skipped_without_blocking_other_pages(self):
+        self.paddle_candidate()
+        with patch.object(search, 'AutoParser') as verifier:
+            verifier.return_value.verify_output.side_effect = search.AutoParseError(
+                'CANDIDATE_METADATA_INVALID')
+            result = self.build_with_records(include_review_candidates=True)
+        self.assertEqual(result['document_count'], 0)
+        self.assertEqual(result['skipped_candidate_count'], 1)
+        self.assertEqual(result['skipped_candidate_issues'][0]['page_number'], 2)
+
     def test_empty_basic_page_is_not_indexed_as_searchable_content(self):
         page = self.root / f'vault/90-Parsed-Sources/{self.sid}/pages/page-0001.md'
         page.parent.mkdir(parents=True, exist_ok=True)

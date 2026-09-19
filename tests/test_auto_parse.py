@@ -114,6 +114,14 @@ class AutoParseTests(unittest.TestCase):
         self.assertTrue(auto.balanced_math('$f(x)=\\left\\{x\\right.$'))
         self.assertFalse(auto.balanced_math('$x_{1$'))
 
+    def test_incomplete_formula_and_missing_absolute_delimiter_are_detected(self):
+        issues = auto.formula_integrity_issues(
+            '$f(x)=|x|e^{x}(-\\infty<x<+$ and '
+            '$f\\left(2n\\pi+\\frac{\\pi}{2}\\right)\\mid=2n\\pi$')
+        self.assertIn('FORMULA_DANGLING_OPERATOR', issues)
+        self.assertIn('FORMULA_GROUP_DELIMITER_UNBALANCED', issues)
+        self.assertIn('FORMULA_ABSOLUTE_VALUE_SUSPECT', issues)
+
     def test_paths_reject_escape(self):
         for value in ('../outside', 'C:/outside', '/outside', 'models/../outside'):
             self.assertFalse(auto.safe_relative(value))

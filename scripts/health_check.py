@@ -9,7 +9,7 @@ DIRECTORIES = (
     'vault/01-数学一/概率论与数理统计', 'vault/02-408',
     'vault/02-408/数据结构', 'vault/02-408/计算机组成原理',
     'vault/02-408/操作系统', 'vault/02-408/计算机网络',
-    'vault/03-知识笔记', 'vault/04-错题本', 'vault/05-历年真题',
+    'vault/03-知识笔记', 'vault/03-错题本', 'vault/05-历年真题',
     'vault/06-阶段测试', 'vault/07-薄弱点',
     'vault/08-学习记录', 'vault/80-附件',
     'vault/90-Parsed-Sources', 'vault/99-笔记模板',

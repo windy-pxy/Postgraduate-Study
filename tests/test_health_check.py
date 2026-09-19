@@ -24,7 +24,7 @@ class HealthTests(unittest.TestCase):
         self.assertTrue(all(ok for _, ok in self.simulated()))
 
     def test_missing_directory_and_file(self):
-        for name in ('sources-original', 'vault/04-错题本', 'AGENTS.md',
+        for name in ('sources-original', 'vault/03-错题本', 'AGENTS.md',
                      'config/providers.example.yaml', '.git'):
             with self.subTest(name=name):
                 self.assertFalse(all(ok for _, ok in self.simulated(missing=name)))

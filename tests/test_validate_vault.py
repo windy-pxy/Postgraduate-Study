@@ -120,7 +120,7 @@ class MetadataTests(unittest.TestCase):
         self.assertIn('YAML_INVALID', codes({'99-笔记模板/知识笔记模板.md': '---\na: [\n---'}))
 
     def test_template_concrete_invalid_values_not_exempt(self):
-        path = '99-笔记模板/知识笔记模板.md'
+        path = '99-笔记模板/资料笔记模板.md'
         content = (ROOT / 'vault' / path).read_text(encoding='utf-8').replace('mastery: "{{mastery}}"', 'mastery: 9')
         self.assertIn('MASTERY_INVALID', codes({path: content}))
         self.assertIn('TEMPLATE_ID_PLACEHOLDER_REQUIRED', codes({path: note()}))
@@ -223,6 +223,7 @@ class IgnoreRuleTests(unittest.TestCase):
             'review-queue/parsing-checkpoints/checkpoint.json', 'models/cache/model.bin',
             'review-queue/enhanced-experiments/run/output.json',
             'review-queue/acceptance-events/acc-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json',
+            'review-queue/candidate-quarantine/src-abcdef123456-page-0001.json',
             'indexes/local-search.sqlite3',
             'vault/90-Parsed-Sources/src-abcdef123456/index.md',
             'sources-original/math1/book.PDF', 'sources-original/408/slides.ppt',

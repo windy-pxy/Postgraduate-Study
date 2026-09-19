@@ -124,6 +124,7 @@ class LocalSearch:
         self.root = Path(root).absolute()
         self.manager = SourceManager(self.root)
         self.reviews = ReviewManager(self.root)
+        self.skipped_candidate_issues = []
 
     def _records(self):
         integrity = self.manager.verify()
@@ -209,20 +210,29 @@ class LocalSearch:
                     fail('ENHANCED_DIRECTORY_INVALID')
                 page = int(match.group(1))
                 try:
-                    verifier.verify_output(record['source_id'], page)
-                except (EnhancedError, AutoParseError):
-                    fail('ENHANCED_CANDIDATE_INVALID')
+                    verification = verifier.verify_output(record['source_id'], page)
+                except (EnhancedError, AutoParseError) as error:
+                    if engine != 'paddleocr-vl':
+                        fail('ENHANCED_CANDIDATE_INVALID')
+                    self.skipped_candidate_issues.append({
+                        'source_id': record['source_id'], 'page_number': page,
+                        'parser': 'paddleocr_vl_local', 'error': str(error),
+                    })
+                    continue
                 metadata = json.loads((candidate / 'candidate-manifest.json').read_text('utf-8'))
                 content_path = candidate / markdown_name
                 content = content_path.read_text('utf-8')
                 review_status = metadata.get(
                     'review_status', 'review_required' if engine == 'mineru' else None)
+                if engine == 'paddleocr-vl':
+                    review_status = verification.get('review_status', review_status)
                 entries.append(self._entry(
                     record, page, 'enhanced', metadata['parser_id'], metadata['parser_version'],
                     review_status, content_path.relative_to(self.root).as_posix(), content))
         return entries
 
     def collect(self, include_review_candidates=False):
+        self.skipped_candidate_issues = []
         entries = []
         records = self._records()
         try:
@@ -292,7 +302,9 @@ class LocalSearch:
                     'document_count': len(entries),
                     'accepted_count': sum(e['review_status'] == 'accepted' for e in entries),
                     'review_candidate_count': sum(e['review_status'] != 'accepted' for e in entries),
-                    'includes_review_candidates': bool(include_review_candidates)}
+                    'includes_review_candidates': bool(include_review_candidates),
+                    'skipped_candidate_count': len(self.skipped_candidate_issues),
+                    'skipped_candidate_issues': self.skipped_candidate_issues}
         except SearchError:
             raise
         except (OSError, sqlite3.Error):

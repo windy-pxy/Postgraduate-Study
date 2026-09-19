@@ -20,13 +20,10 @@ def load_local_search():
 
 
 REQUIRED_POLICY_TEXT = (
-    'study_readonly_pilot', 'read-only', '暂无已审核资料', 'review_required',
-    'source_id', 'parser_version', '90-Parsed-Sources/', 'sources-original/',
-    'import-inbox/', 'config/source-manifests/', 'config/sources-original.baseline.json',
-    'review-queue/', '生成草稿', '03-知识笔记/', '04-错题本/',
-    '只读文件操作', '不得执行项目脚本', '写入型命令',
-    '有效接受事件', '严格资料查询', '模型补充',
-    '不得自行把候选内容标为 accepted/approved',
+    '日常学习助教规则', '模型补充', '原始 PDF', '页面图片',
+    '教材资料.md', '严格资料查询', '暂无已审核资料', 'accepted-only',
+    '识别候选，可能有误', '不得自动接受候选', '知识笔记模板.md',
+    '错题模板.md', 'read-only', '不执行写入命令',
 )
 
 

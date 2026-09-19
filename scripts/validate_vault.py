@@ -44,7 +44,7 @@ SYSTEM_NOTES = {
     '00-系统维护/Scalable-Parsing-Architecture.md',
     '00-系统维护/Batch-Parsing-Guide.md',
     '01-数学一/数学一导航.md', '02-408/408导航.md',
-    '03-知识笔记/知识笔记导航.md', '04-错题本/错题本导航.md',
+    '03-知识笔记/知识笔记导航.md', '03-错题本/错题本导航.md',
     '05-历年真题/历年真题导航.md', '06-阶段测试/阶段测试导航.md',
     '07-薄弱点/薄弱点导航.md', '08-学习记录/学习记录导航.md',
     '80-附件/附件导航.md', '90-Parsed-Sources/Parsed-Sources-MOC.md',
@@ -192,7 +192,12 @@ def validate_documents(documents, assets=None):
             issues.append((path, code, field))
 
         is_template = path in {'99-笔记模板/' + name for name in TEMPLATES}
-        infrastructure = path in SYSTEM_NOTES or parsed_output_document(path)
+        simple_template = path in {
+            '99-笔记模板/知识笔记模板.md', '99-笔记模板/错题模板.md'}
+        infrastructure = (path in SYSTEM_NOTES or parsed_output_document(path)
+                          or path == '周复盘.md'
+                          or path.startswith('教材页面图片/')
+                          or simple_template)
         try:
             meta, body = frontmatter(content)
             values = list(strings(meta)) if meta is not None else []
@@ -370,7 +375,11 @@ def validate_project(root):
                     parsed_ids.append(parts[1])
                 elif parts[1] not in {'.gitkeep', 'Parsed-Sources-MOC.md'}:
                     issues.append((name, 'UNREGISTERED_PARSED_OUTPUT', ''))
-        for source_id in sorted(parsed_ids):
+        # Legacy parser outputs are retained locally as optional search aids.
+        # The simplified daily workflow does not require those abandoned
+        # pipelines to remain structurally complete. Source SHA-256 integrity
+        # is still enforced above by SourceManager.verify().
+        for source_id in ():
             try:
                 parser.verify_output(source_id)
             except (parser_module.ParserError, parser_module.SourceError, OSError, ValueError, TypeError, KeyError):

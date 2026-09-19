@@ -37,6 +37,7 @@ PROJECT_ROOT = Path(__file__).absolute().parent.parent
 CONFIG = 'config/auto-parsing.example.json'
 ROUTING = 'review-queue/parsing-routing'
 OUTPUT = 'vault/90-Parsed-Sources'
+QUARANTINE = 'review-queue/candidate-quarantine'
 
 
 class AutoParseError(Exception):
@@ -116,6 +117,24 @@ def balanced_math(markdown):
         if depth:
             return False
     return True
+
+
+def formula_integrity_issues(markdown):
+    issues = []
+    pattern = re.compile(r'(?s)(?<!\\)(\$\$|\$)(.*?)(?<!\\)\1')
+    for _delimiter, raw in pattern.findall(markdown):
+        formula = raw.strip()
+        # A trailing equals sign is valid for fill-in questions; a trailing + or -
+        # inside a closed math span is a strong truncation signal.
+        if re.search(r'(?:[+\-]|\\(?:times|div))\s*$', formula):
+            issues.append('FORMULA_DANGLING_OPERATOR')
+        for opening, closing in (('(', ')'), ('[', ']')):
+            if formula.count(opening) != formula.count(closing):
+                issues.append('FORMULA_GROUP_DELIMITER_UNBALANCED')
+                break
+        if re.search(r'^\s*f(?:\\left)?\(.*\\mid\s*=', formula, re.S):
+            issues.append('FORMULA_ABSOLUTE_VALUE_SUSPECT')
+    return sorted(set(issues))
 
 
 class AutoParser:
@@ -255,6 +274,7 @@ class AutoParser:
             issues.append('TEXT_TOO_SHORT')
         if '\ufffd' in markdown: issues.append('REPLACEMENT_CHARACTER')
         if not balanced_math(markdown): issues.append('MATH_DELIMITER_OR_BRACE_UNBALANCED')
+        issues.extend(formula_integrity_issues(markdown))
         if re.search(r'\]\((?:https?://|/|[A-Za-z]:|\.\.)', markdown):
             issues.append('UNSAFE_LINK')
         basic_length = max(1, len(re.sub(r'\s+', '', basic)))
@@ -354,7 +374,7 @@ class AutoParser:
                 fail('AUTO_PARSE_FAILED')
 
     def verify_output(self, source_id, page):
-        record, _ = self._source(source_id, page)
+        record, decision = self._source(source_id, page)
         relative = f'{OUTPUT}/{source_id}/enhanced/paddleocr-vl/page-{page:04d}'
         target = self.manager.path(relative, f'{OUTPUT}/{source_id}/enhanced')
         required = {'page-preview.png', 'paddleocr.md', 'paddleocr-result.json',
@@ -364,6 +384,8 @@ class AutoParser:
             fail('OUTPUT_STRUCTURE_INVALID')
         manifest = self.manager.load_json(relative + '/candidate-manifest.json')
         quality = self.manager.load_json(relative + '/quality-report.json')
+        current_quality = self._quality(
+            source_id, page, (target / 'paddleocr.md').read_text('utf-8'), decision)
         timing = manifest.get('timing_seconds')
         if (manifest.get('source_id') != source_id or manifest.get('source_page') != page
                 or manifest.get('source_sha256') != record['sha256']
@@ -377,9 +399,13 @@ class AutoParser:
                     or any(type(value) not in {int, float} or value < 0
                            for value in timing.values())))):
             fail('CANDIDATE_METADATA_INVALID')
+        effective_status = ('exception_review' if current_quality['issues']
+                            else current_quality['status'])
         return {'ok': True, 'source_id': source_id, 'page_number': page,
-                'review_status': manifest['review_status'],
-                'quality_issues': manifest['quality_issues']}
+                'stored_review_status': manifest['review_status'],
+                'review_status': effective_status,
+                'quality_issues': current_quality['issues'],
+                'quality_reaudited': True}
 
     def batch(self, source_id, pages_value, apply=False):
         records, issues = self.manager.manifests()
@@ -411,15 +437,22 @@ class AutoParser:
                                  f'{OUTPUT}/{source_id}/enhanced')
         counts = {'machine_checked_candidate': 0, 'sample_review': 0,
                   'exception_review': 0, 'invalid': 0}
+        invalid_pages = []
         if root.is_dir():
             for path in root.glob('page-[0-9][0-9][0-9][0-9]'):
                 try:
                     page = int(path.name[5:])
                     value = self.verify_output(source_id, page)
                     counts[value['review_status']] += 1
-                except (ValueError, AutoParseError): counts['invalid'] += 1
+                except (ValueError, AutoParseError) as error:
+                    counts['invalid'] += 1
+                    invalid_pages.append({
+                        'page_number': int(path.name[5:]) if path.name[5:].isdigit() else None,
+                        'error': str(error) if isinstance(error, AutoParseError)
+                        else 'PAGE_DIRECTORY_INVALID',
+                    })
         return {'source_id': source_id, 'page_count': records[source_id]['page_count'],
-                'counts': counts}
+                'counts': counts, 'invalid_pages': invalid_pages}
 
 
 def cli(argv=None, root=PROJECT_ROOT):
